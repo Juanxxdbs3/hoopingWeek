@@ -1,0 +1,19 @@
+# Dependencias
+/vendor/
+
+# Configuración del entorno
+.env
+.env.local
+src/config/Env.php
+
+# Archivos del sistema / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Logs y cachés
+/logs/
+*.log
+cache/
+tmp/
