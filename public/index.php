@@ -19,6 +19,10 @@ $app->addErrorMiddleware(true, true, true);
 // Inicializa el pool
 BDConnection::init($config['db']);
 
+//Routes
+$routes = require __DIR__ . '/../src/routes/userRoutes.php';
+$routes($app, $config);
+
 // Ruta raíz que devuelve status (JSON)
 $app->get('/', function (Request $req, Response $res) {
     try {
@@ -63,10 +67,10 @@ try {
     $stmt = $conn->query("SELECT 1 AS ok");
     $r = $stmt->fetch();
     BDConnection::releaseConnection($conn);
-
-    echo "<pre>Conexión OK (test: " . ($r['ok'] ?? 'n/a') . ")\nPool disponible: " . BDConnection::getPoolSize() . "</pre>";
+    /*
+    echo "<pre>Conexión OK (test: " . ($r['ok'] ?? 'n/a') . ")\nPool disponible: " . BDConnection::getPoolSize() . "</pre>";*/
 } catch(Throwable $e) {
-    echo "<pre>Error BD: " . $e->getMessage() . "</pre>";
+    //echo "<pre>Error BD: " . $e->getMessage() . "</pre>";
 }
 
 $app->run();
