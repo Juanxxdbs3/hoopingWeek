@@ -1,18 +1,72 @@
 <?php
 declare(strict_types=1);
+
 use Slim\Factory\AppFactory;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
 
 require __DIR__ . '/../vendor/autoload.php';
+
+// Cargar config y clase de BD
+$config = require __DIR__ . '/../src/config/config.php';
+require_once __DIR__ . '/../src/database/BDConnection.php';
 
 $app = AppFactory::create();
 $app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
 $app->addErrorMiddleware(true, true, true);
 
-// Rutas
-$app->get('/', function ($req, $res) {
-    $res->getBody()->write('Hello from hooping.local!');
+// Inicializa el pool
+BDConnection::init($config['db']);
+
+// Ruta raíz que devuelve status (JSON)
+$app->get('/', function (Request $req, Response $res) {
+    try {
+        $conn = BDConnection::getConnection();
+        $stmt = $conn->query("SELECT 1 AS ok");
+        $r = $stmt->fetch();
+        BDConnection::releaseConnection($conn);
+
+        $payload = [
+            'ok' => true,
+            'db_test' => $r['ok'] ?? null,
+            'pool_available' => BDConnection::getPoolSize()
+        ];
+        $res->getBody()->write(json_encode($payload));
+        return $res->withHeader('Content-Type', 'application/json')->withStatus(200);
+    } catch (Throwable $e) {
+        $payload = [
+            'ok' => false,
+            'error' => $e->getMessage()
+        ];
+        $res->getBody()->write(json_encode($payload));
+        return $res->withHeader('Content-Type', 'application/json')->withStatus(500);
+    }
+});
+
+/*
+Rutas de ejemplo
+$app->get('/hola', function (Request $req, Response $res) {
+    $res->getBody()->write('Hola mundo desde Slim con BD.');
     return $res;
 });
+
+$app->get('/db-status', function (Request $req, Response $res) {
+    $payload = ['pool_size' => BDConnection::getPoolSize()];
+    $res->getBody()->write(json_encode($payload));
+    return $res->withHeader('Content-Type', 'application/json');
+});
+*/
+
+try {
+    $conn = BDConnection::getConnection();
+    $stmt = $conn->query("SELECT 1 AS ok");
+    $r = $stmt->fetch();
+    BDConnection::releaseConnection($conn);
+
+    echo "<pre>Conexión OK (test: " . ($r['ok'] ?? 'n/a') . ")\nPool disponible: " . BDConnection::getPoolSize() . "</pre>";
+} catch(Throwable $e) {
+    echo "<pre>Error BD: " . $e->getMessage() . "</pre>";
+}
 
 $app->run();
