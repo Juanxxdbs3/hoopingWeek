@@ -126,26 +126,38 @@ class UserController {
 
     // Nuevos endpoints
     public function listByRole(Request $request, Response $response, array $args): Response {
-        $roleParam = $args['role']; // puede ser id numérico o nombre
+        $roleParam = $args['role'];
         $roleId = ctype_digit($roleParam) ? (int)$roleParam : null;
-        $users = $this->service->listByRole($roleId, $roleParam);
-        $response->getBody()->write(json_encode(['ok'=>true,'users'=>$users]));
+        $params = $request->getQueryParams();
+        $limit = isset($params['limit']) ? (int)$params['limit'] : 100;
+        $offset = isset($params['offset']) ? (int)$params['offset'] : 0;
+        
+        $result = $this->service->listByRole($roleId, $roleParam, $limit, $offset);
+        $response->getBody()->write(json_encode(['ok'=>true,'users'=>$result['data'],'meta'=>$result['meta']]));
         return $response->withHeader('Content-Type','application/json');
     }
 
     public function listByState(Request $request, Response $response, array $args): Response {
         $stateParam = $args['state'];
         $stateId = ctype_digit($stateParam) ? (int)$stateParam : null;
-        $users = $this->service->listByState($stateId, $stateParam);
-        $response->getBody()->write(json_encode(['ok'=>true,'users'=>$users]));
+        $params = $request->getQueryParams();
+        $limit = isset($params['limit']) ? (int)$params['limit'] : 100;
+        $offset = isset($params['offset']) ? (int)$params['offset'] : 0;
+        
+        $result = $this->service->listByState($stateId, $stateParam, $limit, $offset);
+        $response->getBody()->write(json_encode(['ok'=>true,'users'=>$result['data'],'meta'=>$result['meta']]));
         return $response->withHeader('Content-Type','application/json');
     }
 
     public function listAthletesByAthleteState(Request $request, Response $response, array $args): Response {
         $astateParam = $args['athlete_state'];
         $astateId = $astateParam === 'null' ? null : (ctype_digit($astateParam) ? (int)$astateParam : null);
-        $users = $this->service->listAthletesByAthleteState($astateId, $astateParam);
-        $response->getBody()->write(json_encode(['ok'=>true,'users'=>$users]));
+        $params = $request->getQueryParams();
+        $limit = isset($params['limit']) ? (int)$params['limit'] : 100;
+        $offset = isset($params['offset']) ? (int)$params['offset'] : 0;
+        
+        $result = $this->service->listAthletesByAthleteState($astateId, $astateParam, $limit, $offset);
+        $response->getBody()->write(json_encode(['ok'=>true,'users'=>$result['data'],'meta'=>$result['meta']]));
         return $response->withHeader('Content-Type','application/json');
     }
 

@@ -203,4 +203,70 @@ class UserRepository {
             BDConnection::releaseConnection($pdo);
         }
     }
+
+    public function count(): int {
+        $pdo = BDConnection::getConnection();
+        try {
+            $stmt = $pdo->query("SELECT COUNT(*) FROM users");
+            return (int)$stmt->fetchColumn();
+        } finally {
+            BDConnection::releaseConnection($pdo);
+        }
+    }
+
+    public function countByRole(?int $roleId, string $roleParam): int {
+        $pdo = BDConnection::getConnection();
+        try {
+            if ($roleId !== null) {
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE role_id = :rid");
+                $stmt->execute([':rid' => $roleId]);
+            } else {
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM users u LEFT JOIN roles r ON u.role_id = r.id WHERE r.name = :rname");
+                $stmt->execute([':rname' => $roleParam]);
+            }
+            return (int)$stmt->fetchColumn();
+        } finally {
+            BDConnection::releaseConnection($pdo);
+        }
+    }
+
+    public function countByState(?int $stateId, string $stateParam): int {
+        $pdo = BDConnection::getConnection();
+        try {
+            if ($stateId !== null) {
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE state_id = :sid");
+                $stmt->execute([':sid' => $stateId]);
+            } else {
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM users u LEFT JOIN user_states s ON u.state_id = s.id WHERE s.name = :sname");
+                $stmt->execute([':sname' => $stateParam]);
+            }
+            return (int)$stmt->fetchColumn();
+        } finally {
+            BDConnection::releaseConnection($pdo);
+        }
+    }
+
+    public function countAthletesByAthleteState(?int $athleteStateId, string $param): int {
+        $pdo = BDConnection::getConnection();
+        try {
+            $where = "role_id = 1";
+            $params = [];
+            if ($athleteStateId !== null) {
+                $where .= " AND athlete_state_id = :asid";
+                $params[':asid'] = $athleteStateId;
+            } elseif ($param !== 'null') {
+                $sql = "SELECT COUNT(*) FROM users u LEFT JOIN user_states s2 ON u.athlete_state_id = s2.id WHERE u.role_id = 1 AND s2.name = :astname";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([':astname' => $param]);
+                return (int)$stmt->fetchColumn();
+            } else {
+                $where .= " AND athlete_state_id IS NULL";
+            }
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE $where");
+            $stmt->execute($params);
+            return (int)$stmt->fetchColumn();
+        } finally {
+            BDConnection::releaseConnection($pdo);
+        }
+    }
 }

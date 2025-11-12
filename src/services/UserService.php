@@ -50,7 +50,18 @@ class UserService {
     }
 
     public function list(int $limit = 100, int $offset = 0): array {
-        return $this->repo->findAll($limit, $offset);
+        $users = $this->repo->findAll($limit, $offset);
+        $total = $this->repo->count(); // Nuevo método
+        
+        return [
+            'data' => $users,
+            'meta' => [
+                'total_records' => $total,
+                'limit' => $limit,
+                'offset' => $offset,
+                'count' => count($users)
+            ]
+        ];
     }
 
     public function getById(int $id): ?array {
@@ -91,15 +102,48 @@ class UserService {
         return $force ? $this->repo->hardDelete($id) : $this->repo->softDelete($id);
     }
 
-    public function listByRole(?int $roleId, string $roleParam): array {
-        return $this->repo->findByRole($roleId, $roleParam);
+    public function listByRole(?int $roleId, string $roleParam, int $limit = 100, int $offset = 0): array {
+        $users = $this->repo->findByRole($roleId, $roleParam, $limit, $offset);
+        $total = $this->repo->countByRole($roleId, $roleParam);
+        
+        return [
+            'data' => $users,
+            'meta' => [
+                'total_records' => $total,
+                'limit' => $limit,
+                'offset' => $offset,
+                'count' => count($users)
+            ]
+        ];
     }
 
-    public function listByState(?int $stateId, string $stateParam): array {
-        return $this->repo->findByState($stateId, $stateParam);
+    public function listByState(?int $stateId, string $stateParam, int $limit = 100, int $offset = 0): array {
+        $users = $this->repo->findByState($stateId, $stateParam, $limit, $offset);
+        $total = $this->repo->countByState($stateId, $stateParam);
+        
+        return [
+            'data' => $users,
+            'meta' => [
+                'total_records' => $total,
+                'limit' => $limit,
+                'offset' => $offset,
+                'count' => count($users)
+            ]
+        ];
     }
 
-    public function listAthletesByAthleteState(?int $athleteStateId, string $param): array {
-        return $this->repo->findAthletesByAthleteState($athleteStateId, $param);
+    public function listAthletesByAthleteState(?int $athleteStateId, string $param, int $limit = 100, int $offset = 0): array {
+        $users = $this->repo->findAthletesByAthleteState($athleteStateId, $param, $limit, $offset);
+        $total = $this->repo->countAthletesByAthleteState($athleteStateId, $param);
+        
+        return [
+            'data' => $users,
+            'meta' => [
+                'total_records' => $total,
+                'limit' => $limit,
+                'offset' => $offset,
+                'count' => count($users)
+            ]
+        ];
     }
 }
