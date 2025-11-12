@@ -20,8 +20,11 @@ $app->addErrorMiddleware(true, true, true);
 BDConnection::init($config['db']);
 
 //Routes
-$routes = require __DIR__ . '/../src/routes/userRoutes.php';
-$routes($app, $config);
+$userRoutes = require __DIR__ . '/../src/routes/userRoutes.php';
+$userRoutes($app, $config);
+
+$fieldRoutes = require __DIR__ . '/../src/routes/fieldRoutes.php';
+$fieldRoutes($app);  // No necesita $config porque FieldService no lo usa
 
 // Ruta raíz que devuelve status (JSON)
 $app->get('/', function (Request $req, Response $res) {

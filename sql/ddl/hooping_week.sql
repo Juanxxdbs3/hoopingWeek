@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 11-11-2025 a las 11:05:16
+-- Tiempo de generación: 12-11-2025 a las 04:59:26
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -43,8 +43,19 @@ CREATE TABLE `championships` (
 --
 DELIMITER $$
 CREATE TRIGGER `trg_validate_championship_organizer` BEFORE INSERT ON `championships` FOR EACH ROW BEGIN
-  IF NOT EXISTS (SELECT 1 FROM users WHERE id = NEW.organizer_id AND role IN ('trainer','super_admin')) THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'organizer_id debe ser trainer o super_admin';
+  -- organizer debe ser trainer (2) o super_admin (4)
+  IF NOT EXISTS (SELECT 1 FROM users WHERE id = NEW.organizer_id AND role_id IN (2,4)) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'organizer_id debe tener rol trainer o super_admin';
+  END IF;
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `trg_validate_championship_organizer_upd` BEFORE UPDATE ON `championships` FOR EACH ROW BEGIN
+  IF NEW.organizer_id <> OLD.organizer_id THEN
+    IF NOT EXISTS (SELECT 1 FROM users WHERE id = NEW.organizer_id AND role_id IN (2,4)) THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'organizer_id (update) debe tener rol trainer o super_admin';
+    END IF;
   END IF;
 END
 $$
@@ -81,7 +92,7 @@ CREATE TABLE `fields` (
   `owner_entity` varchar(255) DEFAULT NULL,
   `notes` text DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ;
 
 -- --------------------------------------------------------
 
@@ -148,8 +159,9 @@ CREATE TABLE `manager_shifts` (
 --
 DELIMITER $$
 CREATE TRIGGER `trg_validate_shift_manager` BEFORE INSERT ON `manager_shifts` FOR EACH ROW BEGIN
-  IF NOT EXISTS (SELECT 1 FROM users WHERE id = NEW.manager_id AND role = 'admin_field') THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'manager_id debe ser un usuario con role=admin_field';
+  -- manager_id debe tener rol field_manager (3)
+  IF NOT EXISTS (SELECT 1 FROM users WHERE id = NEW.manager_id AND role_id = 3) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'manager_id debe tener rol field_manager';
   END IF;
 END
 $$
@@ -209,6 +221,28 @@ CREATE TABLE `reservation_participants` (
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `roles`
+--
+
+CREATE TABLE `roles` (
+  `id` int(11) NOT NULL,
+  `name` varchar(50) NOT NULL,
+  `description` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `roles`
+--
+
+INSERT INTO `roles` (`id`, `name`, `description`) VALUES
+(1, 'athlete', 'Athlete user'),
+(2, 'trainer', 'Trainer'),
+(3, 'field_manager', 'Field manager'),
+(4, 'super_admin', 'Super administrator');
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `teams`
 --
 
@@ -227,8 +261,19 @@ CREATE TABLE `teams` (
 --
 DELIMITER $$
 CREATE TRIGGER `trg_validate_team_trainer` BEFORE INSERT ON `teams` FOR EACH ROW BEGIN
-  IF NOT EXISTS (SELECT 1 FROM users WHERE id = NEW.trainer_id AND role = 'trainer') THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'trainer_id debe ser un usuario con role=trainer';
+  -- trainer_id debe tener rol trainer (2)
+  IF NOT EXISTS (SELECT 1 FROM users WHERE id = NEW.trainer_id AND role_id = 2) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'trainer_id debe tener rol trainer';
+  END IF;
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `trg_validate_team_trainer_upd` BEFORE UPDATE ON `teams` FOR EACH ROW BEGIN
+  IF NEW.trainer_id <> OLD.trainer_id THEN
+    IF NOT EXISTS (SELECT 1 FROM users WHERE id = NEW.trainer_id AND role_id = 2) THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'trainer_id (update) debe tener rol trainer';
+    END IF;
   END IF;
 END
 $$
@@ -253,8 +298,9 @@ CREATE TABLE `team_memberships` (
 --
 DELIMITER $$
 CREATE TRIGGER `trg_validate_membership_athlete` BEFORE INSERT ON `team_memberships` FOR EACH ROW BEGIN
-  IF NOT EXISTS (SELECT 1 FROM users WHERE id = NEW.athlete_id AND role = 'athlete') THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'athlete_id debe ser un usuario con role=athlete';
+  -- athlete_id debe tener rol athlete (1)
+  IF NOT EXISTS (SELECT 1 FROM users WHERE id = NEW.athlete_id AND role_id = 1) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'athlete_id debe tener rol athlete';
   END IF;
 END
 $$
@@ -269,16 +315,41 @@ DELIMITER ;
 CREATE TABLE `users` (
   `id` int(11) NOT NULL,
   `email` varchar(255) NOT NULL,
+  `first_name` varchar(150) DEFAULT NULL,
+  `last_name` varchar(150) DEFAULT NULL,
   `phone` varchar(50) DEFAULT NULL,
   `password_hash` varchar(255) DEFAULT NULL,
-  `role` varchar(50) NOT NULL,
-  `name` varchar(255) NOT NULL,
-  `state` varchar(50) NOT NULL DEFAULT 'active',
+  `role_id` int(11) NOT NULL DEFAULT 1,
+  `state_id` int(11) NOT NULL DEFAULT 1,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `height` float DEFAULT NULL,
   `birth_date` date DEFAULT NULL,
-  `athlete_state` varchar(50) DEFAULT NULL
+  `athlete_state_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `user_states`
+--
+
+CREATE TABLE `user_states` (
+  `id` int(11) NOT NULL,
+  `name` varchar(50) NOT NULL,
+  `applies_to` varchar(50) DEFAULT NULL,
+  `description` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `user_states`
+--
+
+INSERT INTO `user_states` (`id`, `name`, `applies_to`, `description`) VALUES
+(1, 'active', NULL, NULL),
+(2, 'inactive', NULL, NULL),
+(3, 'suspended', NULL, NULL),
+(4, 'in_championship', 'athlete', NULL),
+(5, 'injured', 'athlete', NULL);
 
 --
 -- Índices para tablas volcadas
@@ -369,6 +440,13 @@ ALTER TABLE `reservation_participants`
   ADD KEY `idx_participant_user` (`participant_id`);
 
 --
+-- Indices de la tabla `roles`
+--
+ALTER TABLE `roles`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `name` (`name`);
+
+--
 -- Indices de la tabla `teams`
 --
 ALTER TABLE `teams`
@@ -391,8 +469,16 @@ ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `email` (`email`),
   ADD KEY `idx_user_email` (`email`),
-  ADD KEY `idx_user_role` (`role`),
-  ADD KEY `idx_user_state` (`state`);
+  ADD KEY `fk_users_role` (`role_id`),
+  ADD KEY `fk_users_state` (`state_id`),
+  ADD KEY `fk_users_athlete_state` (`athlete_state_id`);
+
+--
+-- Indices de la tabla `user_states`
+--
+ALTER TABLE `user_states`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `name` (`name`);
 
 --
 -- AUTO_INCREMENT de las tablas volcadas
@@ -453,6 +539,12 @@ ALTER TABLE `reservation_participants`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT de la tabla `roles`
+--
+ALTER TABLE `roles`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
 -- AUTO_INCREMENT de la tabla `teams`
 --
 ALTER TABLE `teams`
@@ -468,7 +560,13 @@ ALTER TABLE `team_memberships`
 -- AUTO_INCREMENT de la tabla `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+
+--
+-- AUTO_INCREMENT de la tabla `user_states`
+--
+ALTER TABLE `user_states`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Restricciones para tablas volcadas
@@ -543,6 +641,14 @@ ALTER TABLE `teams`
 ALTER TABLE `team_memberships`
   ADD CONSTRAINT `fk_memberships_athlete` FOREIGN KEY (`athlete_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_memberships_team` FOREIGN KEY (`team_id`) REFERENCES `teams` (`id`) ON DELETE CASCADE;
+
+--
+-- Filtros para la tabla `users`
+--
+ALTER TABLE `users`
+  ADD CONSTRAINT `fk_users_athlete_state` FOREIGN KEY (`athlete_state_id`) REFERENCES `user_states` (`id`),
+  ADD CONSTRAINT `fk_users_role` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`),
+  ADD CONSTRAINT `fk_users_state` FOREIGN KEY (`state_id`) REFERENCES `user_states` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
