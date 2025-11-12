@@ -3,40 +3,60 @@
 
 class User {
     public ?int $id;
-    public string $name;
+    public string $first_name;
+    public string $last_name;
     public string $email;
     public ?string $phone;
     public ?string $passwordHash;
-    public string $role;        // athlete, trainer, admin_field, super_admin
-    public string $state;       // active, inactive, suspended, injured
+    public int $role_id;              // FK roles.id
+    public ?string $role_name;        // JOIN (solo lectura)
+    public int $state_id;             // FK user_states.id
+    public ?string $state_name;       // JOIN (solo lectura)
+    public ?int $athlete_state_id;    // FK user_states.id (nullable)
+    public ?string $athlete_state_name;
     public ?float $height;
-    public ?string $birth_date; // 'YYYY-MM-DD'
-    public ?string $athlete_state;
+    public ?string $birth_date;       // 'YYYY-MM-DD'
+    public ?string $created_at;
 
     public function __construct(array $data = []) {
         $this->id = $data['id'] ?? null;
-        $this->name = $data['name'] ?? '';
+        $this->first_name = $data['first_name'] ?? '';
+        $this->last_name = $data['last_name'] ?? '';
         $this->email = $data['email'] ?? '';
         $this->phone = $data['phone'] ?? null;
         $this->passwordHash = $data['password_hash'] ?? ($data['passwordHash'] ?? null);
-        $this->role = $data['role'] ?? 'athlete';
-        $this->state = $data['state'] ?? 'active';
+        $this->role_id = isset($data['role_id']) ? (int)$data['role_id'] : 1;
+        $this->role_name = $data['role_name'] ?? null;
+        $this->state_id = isset($data['state_id']) ? (int)$data['state_id'] : 1;
+        $this->state_name = $data['state_name'] ?? null;
+        $this->athlete_state_id = isset($data['athlete_state_id']) ? (int)$data['athlete_state_id'] : null;
+        $this->athlete_state_name = $data['athlete_state_name'] ?? null;
         $this->height = isset($data['height']) ? (float)$data['height'] : null;
         $this->birth_date = $data['birth_date'] ?? null;
-        $this->athlete_state = $data['athlete_state'] ?? null;
+        $this->created_at = $data['created_at'] ?? null;
+    }
+
+    public function fullName(): string {
+        return trim($this->first_name . ' ' . $this->last_name);
     }
 
     public function toArray(): array {
         return [
             'id' => $this->id,
-            'name' => $this->name,
+            'first_name' => $this->first_name,
+            'last_name' => $this->last_name,
+            'full_name' => $this->fullName(),
             'email' => $this->email,
             'phone' => $this->phone,
-            'role' => $this->role,
-            'state' => $this->state,
+            'role_id' => $this->role_id,
+            'role_name' => $this->role_name,
+            'state_id' => $this->state_id,
+            'state_name' => $this->state_name,
+            'athlete_state_id' => $this->athlete_state_id,
+            'athlete_state_name' => $this->athlete_state_name,
             'height' => $this->height,
             'birth_date' => $this->birth_date,
-            'athlete_state' => $this->athlete_state,
+            'created_at' => $this->created_at,
         ];
     }
 }
