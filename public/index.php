@@ -26,6 +26,15 @@ $userRoutes($app, $config);
 $fieldRoutes = require __DIR__ . '/../src/routes/fieldRoutes.php';
 $fieldRoutes($app);  // No necesita $config porque FieldService no lo usa
 
+$teamRoutes = require __DIR__ . '/../src/routes/teamRoutes.php';
+$teamRoutes($app);
+
+$reservationRoutes = require __DIR__ . '/../src/routes/reservationRoutes.php';
+$reservationRoutes($app);
+
+$operatingHoursRoutes = require __DIR__ . '/../src/routes/operatingHoursRoutes.php';
+$operatingHoursRoutes($app);
+
 // Ruta raíz que devuelve status (JSON)
 $app->get('/', function (Request $req, Response $res) {
     try {

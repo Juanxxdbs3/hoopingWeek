@@ -28,6 +28,10 @@ return function($app) {
         return $ctrl->getFieldById($req, $res, $args);
     });
 
+    $app->get('/api/fields/{id}/availability', function($req, $res, $args) use ($ctrl) {
+        return $ctrl->getAvailability($req, $res, $args);
+    });
+
     $app->put('/api/fields/{id}', function($req, $res, $args) use ($ctrl) {
         return $ctrl->update($req, $res, $args);
     });

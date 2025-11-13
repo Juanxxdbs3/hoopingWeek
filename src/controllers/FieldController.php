@@ -6,18 +6,21 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\ResponseInterface as Response;
 
 require_once __DIR__ . '/../services/FieldService.php';
+require_once __DIR__ . '/../services/ReservationService.php';
 
 class FieldController {
-    private FieldService $service;
+    private FieldService $fieldService;
+    private ReservationService $reservationService;
 
     public function __construct() {
-        $this->service = new FieldService();
+        $this->fieldService = new FieldService();
+        $this->reservationService = new ReservationService();
     }
 
     public function createField(Request $request, Response $response): Response {
         $body = $request->getParsedBody() ?? [];
         try {
-            $field = $this->service->create($body);
+            $field = $this->fieldService->create($body);
             $response->getBody()->write(json_encode(['ok' => true, 'field' => $field]));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(201);
         } catch (\InvalidArgumentException $e) {
@@ -34,7 +37,7 @@ class FieldController {
         $params = $request->getQueryParams();
         $limit = isset($params['limit']) ? (int)$params['limit'] : 100;
         $offset = isset($params['offset']) ? (int)$params['offset'] : 0;
-        $fields = $this->service->list($limit, $offset);
+        $fields = $this->fieldService->list($limit, $offset);
         $response->getBody()->write(json_encode(['ok' => true, 'fields' => $fields]));
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -42,7 +45,7 @@ class FieldController {
     public function getFieldById(Request $request, Response $response, array $args): Response {
         $id = (int)$args['id'];
         try {
-            $field = $this->service->getById($id);
+            $field = $this->fieldService->getById($id);
             if (!$field) {
                 $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Campo no encontrado']));
                 return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
@@ -62,7 +65,7 @@ class FieldController {
         $limit = isset($params['limit']) ? (int)$params['limit'] : 100;
         $offset = isset($params['offset']) ? (int)$params['offset'] : 0;
         
-        $result = $this->service->listByState($state, $limit, $offset);
+        $result = $this->fieldService->listByState($state, $limit, $offset);
         $response->getBody()->write(json_encode(['ok' => true, 'fields' => $result['data'], 'meta' => $result['meta']]));
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -73,7 +76,7 @@ class FieldController {
         $limit = isset($params['limit']) ? (int)$params['limit'] : 100;
         $offset = isset($params['offset']) ? (int)$params['offset'] : 0;
         
-        $result = $this->service->listByLocation($location, $limit, $offset);
+        $result = $this->fieldService->listByLocation($location, $limit, $offset);
         $response->getBody()->write(json_encode(['ok' => true, 'fields' => $result['data'], 'meta' => $result['meta']]));
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -88,7 +91,7 @@ class FieldController {
         $limit = isset($params['limit']) ? (int)$params['limit'] : 100;
         $offset = isset($params['offset']) ? (int)$params['offset'] : 0;
         
-        $result = $this->service->search($filters, $limit, $offset);
+        $result = $this->fieldService->search($filters, $limit, $offset);
         $response->getBody()->write(json_encode(['ok' => true, 'fields' => $result['data'], 'meta' => $result['meta']]));
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -98,7 +101,7 @@ class FieldController {
         $body = (array)$request->getParsedBody();
         
         try {
-            $field = $this->service->update($id, $body);
+            $field = $this->fieldService->update($id, $body);
             $response->getBody()->write(json_encode(['ok' => true, 'field' => $field]));
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\RuntimeException $e) {
@@ -118,7 +121,7 @@ class FieldController {
         
         try {
             if (!$state) throw new InvalidArgumentException("state requerido");
-            $this->service->changeState($id, $state);
+            $this->fieldService->changeState($id, $state);
             $response->getBody()->write(json_encode(['ok' => true]));
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\InvalidArgumentException $e) {
@@ -137,7 +140,7 @@ class FieldController {
         $force = isset($params['force']) && $params['force'] === 'true';
         
         try {
-            $ok = $this->service->delete($id, $force);
+            $ok = $this->fieldService->delete($id, $force);
             if (!$ok) {
                 $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Campo no encontrado']));
                 return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
@@ -147,6 +150,28 @@ class FieldController {
         } catch (\Throwable $e) {
             error_log($e->getMessage());
             $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Error interno']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
+    }
+
+    public function getAvailability(Request $request, Response $response, array $args): Response {
+        $fieldId = (int)$args['id'];
+        $query = $request->getQueryParams();
+        $date = $query['date'] ?? date('Y-m-d');
+
+        try {
+            $result = $this->reservationService->getAvailability($fieldId, $date);
+            $response->getBody()->write(json_encode(['ok' => true, 'availability' => $result]));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\InvalidArgumentException $e) {
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => $e->getMessage()]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        } catch (\RuntimeException $e) {
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => $e->getMessage()]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
+        } catch (\Throwable $e) {
+            error_log($e->getMessage());
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => 'error interno']));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
     }
