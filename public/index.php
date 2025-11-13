@@ -44,6 +44,9 @@ $championshipRoutes($app);
 $managerShiftRoutes = require __DIR__ . '/../src/routes/managerShiftRoutes.php';
 $managerShiftRoutes($app);
 
+$statisticsRoutes = require __DIR__ . '/../src/routes/statisticsRoutes.php';
+$statisticsRoutes($app);
+
 // Ruta raíz que devuelve status (JSON)
 $app->get('/', function (Request $req, Response $res) {
     try {
