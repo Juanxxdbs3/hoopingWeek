@@ -35,6 +35,9 @@ $reservationRoutes($app);
 $operatingHoursRoutes = require __DIR__ . '/../src/routes/operatingHoursRoutes.php';
 $operatingHoursRoutes($app);
 
+$matchRoutes = require __DIR__ . '/../src/routes/matchRoutes.php';
+$matchRoutes($app);
+
 // Ruta raíz que devuelve status (JSON)
 $app->get('/', function (Request $req, Response $res) {
     try {
