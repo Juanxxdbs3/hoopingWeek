@@ -38,6 +38,9 @@ $operatingHoursRoutes($app);
 $matchRoutes = require __DIR__ . '/../src/routes/matchRoutes.php';
 $matchRoutes($app);
 
+$championshipRoutes = require __DIR__ . '/../src/routes/championshipRoutes.php';
+$championshipRoutes($app);
+
 // Ruta raíz que devuelve status (JSON)
 $app->get('/', function (Request $req, Response $res) {
     try {
