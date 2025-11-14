@@ -13,11 +13,27 @@ class UserRepository {
     public function create(User $user): int {
         $pdo = BDConnection::getConnection();
         try {
-            $sql = "INSERT INTO users (email, phone, password_hash, role_id, first_name, last_name, state_id, created_at, height, birth_date, athlete_state_id)
-                    VALUES (:email, :phone, :password_hash, :role_id, :first_name, :last_name, :state_id, :created_at, :height, :birth_date, :athlete_state_id)";
+            // Validar que se haya enviado id (número documento)
+            if (empty($user->id) || !is_numeric($user->id)) {
+                throw new InvalidArgumentException("id (documento) requerido y numérico");
+            }
+
+            // Verificar unicidad de id
+            if ($this->idExists((int)$user->id)) {
+                throw new RuntimeException("El id proporcionado ya existe");
+            }
+
+            // Verificar email único también
+            if ($this->findByEmail($user->email)) {
+                throw new RuntimeException("El email ya está en uso");
+            }
+
+            $sql = "INSERT INTO users (id, email, phone, password_hash, role_id, first_name, last_name, state_id, created_at, height, birth_date, athlete_state_id)
+                    VALUES (:id, :email, :phone, :password_hash, :role_id, :first_name, :last_name, :state_id, :created_at, :height, :birth_date, :athlete_state_id)";
             $stmt = $pdo->prepare($sql);
             $now = (new DateTime('now', new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
             $stmt->execute([
+                ':id' => (int)$user->id,
                 ':email' => $user->email,
                 ':phone' => $user->phone,
                 ':password_hash' => $user->passwordHash,
@@ -30,11 +46,14 @@ class UserRepository {
                 ':birth_date' => $user->birth_date,
                 ':athlete_state_id' => $user->athlete_state_id
             ]);
-            return (int)$pdo->lastInsertId();
+
+            // No usamos lastInsertId, devolvemos el id proporcionado
+            return (int)$user->id;
         } finally {
             BDConnection::releaseConnection($pdo);
         }
     }
+
 
     private function baseSelect(): string {
         return "SELECT u.id, u.first_name, u.last_name, u.email, u.phone,
@@ -269,4 +288,16 @@ class UserRepository {
             BDConnection::releaseConnection($pdo);
         }
     }
+
+    public function idExists(int $id): bool {
+        $pdo = BDConnection::getConnection();
+        try {
+            $stmt = $pdo->prepare("SELECT 1 FROM users WHERE id = ? LIMIT 1");
+            $stmt->execute([$id]);
+            return $stmt->fetch() !== false;
+        } finally {
+            BDConnection::releaseConnection($pdo);
+        }
+    }
+
 }

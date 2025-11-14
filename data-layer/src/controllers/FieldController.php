@@ -154,6 +154,7 @@ class FieldController {
         }
     }
 
+    /*
     public function getAvailability(Request $request, Response $response, array $args): Response {
         $fieldId = (int)$args['id'];
         $query = $request->getQueryParams();
@@ -175,4 +176,5 @@ class FieldController {
             return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
     }
+    */
 }

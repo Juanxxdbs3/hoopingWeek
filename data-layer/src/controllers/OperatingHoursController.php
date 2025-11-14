@@ -121,4 +121,42 @@ class OperatingHoursController {
             return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
     }
+
+     public function getReservedSlots(Request $request, Response    $response, array $args): Response {
+            $fieldId = (int)$args['field_id'];
+            $query = $request->getQueryParams();
+            $date = $query['date'] ?? null; // usa date si se pasa, sino error o fecha actual
+
+            try {
+                if (!$date) {
+                    // recomendamos requerir date explicitamente
+                    throw new \InvalidArgumentException("Parámetro 'date' requerido (YYYY-MM-DD)");
+                }
+
+                // require repo (asegúrate de la ruta)
+                require_once __DIR__ . '/../repositories/ReservationRepository.php';
+                $repo = new ReservationRepository();
+
+                $rows = $repo->getReservedSlots($fieldId, $date);
+
+                $payload = [
+                    'ok' => true,
+                    'field_id' => $fieldId,
+                    'date' => $date,
+                    'reserved_slots' => $rows
+                ];
+
+                $response->getBody()->write(json_encode($payload));
+                return $response->withHeader('Content-Type', 'application/json');
+
+            } catch (\InvalidArgumentException $e) {
+                $response->getBody()->write(json_encode(['ok' => false, 'error' => $e->getMessage()]));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+            } catch (\Throwable $e) {
+                error_log($e->getMessage());
+                $response->getBody()->write(json_encode(['ok' => false, 'error' => 'error interno']));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+            }
+    }
+
 }

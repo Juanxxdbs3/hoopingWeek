@@ -14,6 +14,15 @@ class UserService {
     }
 
     public function register(array $data): array {
+
+        if (empty($data['id'])) {
+            throw new InvalidArgumentException("id (documento) requerido");
+        }
+        if (!ctype_digit((string)$data['id'])) {
+            throw new InvalidArgumentException("id inválido");
+        }
+        $userData['id'] = (int)$data['id'];
+
         // validaciones básicas
         if (empty($data['email']) || empty($data['first_name']) || empty($data['password'])) {
             throw new InvalidArgumentException("first_name, email y password requeridos");
@@ -29,6 +38,7 @@ class UserService {
 
         // crear User
         $userData = [
+            'id' => (int)$data['id'],
             'first_name' => $data['first_name'],
             'last_name' => $data['last_name'] ?? '',
             'email' => $data['email'],
