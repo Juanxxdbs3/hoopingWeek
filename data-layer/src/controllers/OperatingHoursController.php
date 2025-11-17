@@ -159,4 +159,39 @@ class OperatingHoursController {
             }
     }
 
+    public function getExceptionsByRange(Request $request, Response $response, array $args): Response {
+        $fieldId = (int)$args['field_id'];
+        $query = $request->getQueryParams();
+        $startDate = $query['start_date'] ?? null;
+        $endDate = $query['end_date'] ?? null;
+        
+        try {
+            if (!$startDate || !$endDate) {
+                throw new \InvalidArgumentException("Parámetros 'start_date' y 'end_date' son requeridos (YYYY-MM-DD)");
+            }
+
+            $exceptions = $this->service->getExceptionsByRange($fieldId, $startDate, $endDate);
+            
+            $response->getBody()->write(json_encode([
+                'ok' => true,
+                'field_id' => $fieldId,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'exceptions' => $exceptions,
+                'count' => count($exceptions)
+            ]));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\InvalidArgumentException $e) {
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => $e->getMessage()]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        } catch (\RuntimeException $e) {
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => $e->getMessage()]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
+        } catch (\Throwable $e) {
+            error_log($e->getMessage());
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => 'error interno']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
+    }
+
 }

@@ -118,4 +118,20 @@ class OperatingHoursService {
 
         return $this->repo->findException($fieldId, $dateMysql);
     }
+
+    public function getExceptionsByRange(int $fieldId, string $startDate, string $endDate): array {
+        // Validar que field existe
+        require_once __DIR__ . '/../repositories/FieldRepository.php';
+        $fieldRepo = new FieldRepository();
+        if (!$fieldRepo->findById($fieldId)) {
+            throw new \RuntimeException("Campo no encontrado");
+        }
+        
+        // Validar formato de fechas
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
+            throw new \InvalidArgumentException("Formato de fecha inválido. Use YYYY-MM-DD");
+        }
+        
+        return $this->repo->getExceptionsByRange($fieldId, $startDate, $endDate);
+    }
 }
