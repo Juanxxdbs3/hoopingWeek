@@ -61,3 +61,22 @@ class UserRegisterResponse(BaseModel):
     user: Optional[dict] = None
     validations: Optional[dict] = None
     errors: List[str] = []
+
+
+# ========== SCHEMAS DE APROBACIONES ==========
+
+class ApproveRequest(BaseModel):
+    """Request para aprobar una reserva"""
+    approver_id: int = Field(..., description="ID del usuario que aprueba")
+    note: Optional[str] = Field(None, max_length=500, description="Nota opcional")
+
+class RejectRequest(BaseModel):
+    """Request para rechazar una reserva"""
+    approver_id: int = Field(..., description="ID del usuario que rechaza")
+    rejection_reason: str = Field(..., min_length=10, max_length=500, description="Motivo del rechazo")
+
+class SimpleResponse(BaseModel):
+    """Respuesta simple con mensaje"""
+    ok: bool
+    message: str
+    reservation: Optional[dict] = None

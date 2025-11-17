@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     # API
     api_prefix: str = "/api"
     
+    # IDs de roles (sincronizados con Data Layer)
+    ROLE_ATHLETE_ID: int = 1
+    ROLE_TRAINER_ID: int = 2
+    ROLE_FIELD_MANAGER_ID: int = 3
+    ROLE_SUPER_ADMIN_ID: int = 4
+    
     class Config:
         env_file = ".env"
         case_sensitive = False
