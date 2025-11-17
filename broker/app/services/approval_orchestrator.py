@@ -114,7 +114,8 @@ class ApprovalOrchestrator:
         # 5. Actualizar estado en Data Layer
         payload = {
             "status": "approved",
-            "approved_by": approver_id
+            "approved_by": approver_id,
+            "approved_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         
         if note:
@@ -194,7 +195,8 @@ class ApprovalOrchestrator:
         payload = {
             "status": "rejected",
             "approved_by": approver_id,
-            "rejection_reason": rejection_reason
+            "rejection_reason": rejection_reason,
+            "rejected_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         
         try:
@@ -212,6 +214,60 @@ class ApprovalOrchestrator:
             return {
                 "ok": True,
                 "message": f"Reserva rechazada: {rejection_reason}",
+                "reservation": updated.get("reservation")
+            }
+        
+        except Exception as e:
+            return {"ok": False, "message": f"Error al comunicarse con Data Layer: {e}"}
+    
+    async def cancel_reservation(
+        self,
+        reservation_id: int,
+        cancelled_by: int,
+        cancellation_reason: str
+    ) -> dict:
+        """
+        Cancela una reserva
+        
+        Permisos: Cualquiera que tenga acceso a la reserva
+        """
+        # 1. Cargar reserva
+        res = await self.data_layer.get(f"/api/reservations/{reservation_id}")
+        if not res.get("ok"):
+            return {"ok": False, "message": "Reserva no encontrada"}
+        
+        reservation = res.get("reservation")
+        
+        # 2. Verificar estado
+        if reservation.get("status") == "cancelled":
+            return {
+                "ok": False,
+                "message": "La reserva ya está cancelada"
+            }
+        
+        # 3. Actualizar estado a cancelado
+        payload = {
+            "status": "cancelled",
+            "cancelled_by": cancelled_by,
+            "cancelled_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "cancellation_reason": cancellation_reason
+        }
+        
+        try:
+            result = await self.data_layer.patch(
+                f"/api/reservations/{reservation_id}/status",
+                payload
+            )
+            
+            if not result.get("ok"):
+                return {"ok": False, "message": result.get("message", "Error al cancelar")}
+            
+            # 4. Obtener reserva actualizada
+            updated = await self.data_layer.get(f"/api/reservations/{reservation_id}")
+            
+            return {
+                "ok": True,
+                "message": "Reserva cancelada exitosamente",
                 "reservation": updated.get("reservation")
             }
         

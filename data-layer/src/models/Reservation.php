@@ -16,6 +16,11 @@ class Reservation {
     public ?string $rejection_reason;
     public ?string $notes;
     public int $soft_deleted;
+    public ?string $approved_at;
+    public ?string $rejected_at;
+    public ?string $cancelled_at;
+    public ?int $cancelled_by;
+    public ?string $cancellation_reason;
 
     public function __construct(array $data = []) {
         $this->id = isset($data['id']) ? (int)$data['id'] : null;
@@ -32,6 +37,11 @@ class Reservation {
         $this->rejection_reason = $data['rejection_reason'] ?? null;
         $this->notes = $data['notes'] ?? null;
         $this->soft_deleted = isset($data['soft_deleted']) ? (int)$data['soft_deleted'] : 0;
+        $this->approved_at = $data['approved_at'] ?? null;
+        $this->rejected_at = $data['rejected_at'] ?? null;
+        $this->cancelled_at = $data['cancelled_at'] ?? null;
+        $this->cancelled_by = $data['cancelled_by'] ?? null;
+        $this->cancellation_reason = $data['cancellation_reason'] ?? null;
     }
 
     public function toArray(): array {
@@ -46,6 +56,11 @@ class Reservation {
             'status' => $this->status,
             'priority' => $this->priority,
             'approved_by' => $this->approved_by,
+            'approved_at' => $this->approved_at,
+            'rejected_at' => $this->rejected_at,
+            'cancelled_at' => $this->cancelled_at,
+            'cancelled_by' => $this->cancelled_by,
+            'cancellation_reason' => $this->cancellation_reason,
             'request_date' => $this->request_date,
             'rejection_reason' => $this->rejection_reason,
             'notes' => $this->notes,

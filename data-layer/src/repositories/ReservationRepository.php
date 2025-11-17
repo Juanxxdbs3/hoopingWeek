@@ -34,7 +34,17 @@ class ReservationRepository {
     public function findById(int $id): ?Reservation {
         $pdo = BDConnection::getConnection();
         try {
-            $stmt = $pdo->prepare("SELECT * FROM reservations WHERE id = :id LIMIT 1");
+            $sql = "SELECT 
+                        id, field_id, applicant_id, activity_type,
+                        start_datetime, end_datetime, duration_hours,
+                        status, priority, approved_by, approved_at,
+                        rejected_at, cancelled_at, cancelled_by,
+                        cancellation_reason,
+                        request_date, rejection_reason, notes, soft_deleted
+                    FROM reservations 
+                    WHERE id = :id AND soft_deleted = 0";
+            
+            $stmt = $pdo->prepare($sql);
             $stmt->execute([':id' => $id]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             return $row ? new Reservation($row) : null;
@@ -151,19 +161,45 @@ class ReservationRepository {
         }
     }
 
-    public function updateStatus(int $id, string $status, ?int $approvedBy = null, ?string $rejectionReason = null): bool {
+    public function updateStatus(
+        int $id, 
+        string $status, 
+        ?int $approvedBy = null, 
+        ?string $rejectionReason = null,
+        ?string $approvedAt = null,
+        ?string $rejectedAt = null,
+        ?string $cancelledAt = null,
+        ?int $cancelledBy = null,
+        ?string $cancellationReason = null
+    ): bool {
         $pdo = BDConnection::getConnection();
         try {
-            $sql = "UPDATE reservations 
-                    SET status = :status, approved_by = :approved_by, rejection_reason = :rejection_reason 
-                    WHERE id = :id";
+            $fields = ['status' => $status];
+            
+            // Campos de aprobación
+            if ($approvedBy !== null) $fields['approved_by'] = $approvedBy;
+            if ($approvedAt !== null) $fields['approved_at'] = $approvedAt;
+            
+            // Campos de rechazo
+            if ($rejectionReason !== null) $fields['rejection_reason'] = $rejectionReason;
+            if ($rejectedAt !== null) $fields['rejected_at'] = $rejectedAt;
+            
+            // Campos de cancelación
+            if ($cancelledBy !== null) $fields['cancelled_by'] = $cancelledBy;
+            if ($cancelledAt !== null) $fields['cancelled_at'] = $cancelledAt;
+            if ($cancellationReason !== null) $fields['cancellation_reason'] = $cancellationReason;
+            
+            $sets = [];
+            $params = [':id' => $id];
+            
+            foreach ($fields as $col => $val) {
+                $sets[] = "`$col` = :$col";
+                $params[":$col"] = $val;
+            }
+            
+            $sql = "UPDATE reservations SET " . implode(', ', $sets) . " WHERE id = :id";
             $stmt = $pdo->prepare($sql);
-            $stmt->execute([
-                ':id' => $id,
-                ':status' => $status,
-                ':approved_by' => $approvedBy,
-                ':rejection_reason' => $rejectionReason
-            ]);
+            $stmt->execute($params);
             return $stmt->rowCount() > 0;
         } finally {
             BDConnection::releaseConnection($pdo);

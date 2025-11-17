@@ -128,7 +128,17 @@ class ReservationService {
         return $r ? $r->toArray() : [];
     }
 
-    public function changeStatus(int $id, string $status, ?int $approvedBy = null, ?string $rejectionReason = null): bool {
+    public function changeStatus(
+        int $id, 
+        string $status, 
+        ?int $approvedBy = null, 
+        ?string $rejectionReason = null,
+        ?string $approvedAt = null,
+        ?string $rejectedAt = null,
+        ?string $cancelledAt = null,
+        ?int $cancelledBy = null,
+        ?string $cancellationReason = null
+    ): bool {
         // Validar estados permitidos
         $validStatuses = ['pending', 'approved', 'rejected', 'cancelled', 'completed'];
         if (!in_array($status, $validStatuses, true)) {
@@ -145,8 +155,24 @@ class ReservationService {
             $approver = $this->userRepo->findById($approvedBy);
             if (!$approver) throw new RuntimeException("approved_by no encontrado");
         }
+        
+        // Si se cancela, validar que cancelled_by existe
+        if ($status === 'cancelled' && $cancelledBy !== null) {
+            $canceller = $this->userRepo->findById($cancelledBy);
+            if (!$canceller) throw new RuntimeException("cancelled_by no encontrado");
+        }
 
-        return $this->repo->updateStatus($id, $status, $approvedBy, $rejectionReason);
+        return $this->repo->updateStatus(
+            $id, 
+            $status, 
+            $approvedBy, 
+            $rejectionReason,
+            $approvedAt,
+            $rejectedAt,
+            $cancelledAt,
+            $cancelledBy,
+            $cancellationReason
+        );
     }
 
     public function delete(int $id, bool $force = false): bool {

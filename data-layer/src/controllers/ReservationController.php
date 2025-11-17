@@ -97,14 +97,31 @@ class ReservationController {
     public function changeStatus(Request $request, Response $response, array $args): Response {
         $id = (int)$args['id'];
         $body = (array)$request->getParsedBody();
+        
         $status = $body['status'] ?? null;
         $approvedBy = isset($body['approved_by']) ? (int)$body['approved_by'] : null;
         $rejectionReason = $body['rejection_reason'] ?? null;
+        $approvedAt = $body['approved_at'] ?? null;
+        $rejectedAt = $body['rejected_at'] ?? null;
+        $cancelledAt = $body['cancelled_at'] ?? null;
+        $cancelledBy = isset($body['cancelled_by']) ? (int)$body['cancelled_by'] : null;
+        $cancellationReason = $body['cancellation_reason'] ?? null;
         
         try {
             if (!$status) throw new \InvalidArgumentException("status es requerido");
             
-            $this->service->changeStatus($id, $status, $approvedBy, $rejectionReason);
+            $this->service->changeStatus(
+                $id, 
+                $status, 
+                $approvedBy, 
+                $rejectionReason,
+                $approvedAt,
+                $rejectedAt,
+                $cancelledAt,
+                $cancelledBy,
+                $cancellationReason
+            );
+            
             $response->getBody()->write(json_encode(['ok' => true, 'message' => 'Estado actualizado']));
             return $response->withHeader('Content-Type', 'application/json');
         } catch (\InvalidArgumentException $e) {
