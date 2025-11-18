@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routers import health, reservations, users, reservations_approvals, fields  # ← AGREGAR
+from app.routers import health, reservations, users, reservations_approvals, fields, manager_shifts  # ← AGREGAR
 from app.config.settings import settings
 
 app = FastAPI(
@@ -13,6 +13,7 @@ app.include_router(reservations.router)
 app.include_router(users.router)
 app.include_router(reservations_approvals.router)
 app.include_router(fields.router)  # ← AGREGAR
+app.include_router(manager_shifts.router)  # ← AGREGAR después de fields.router
 
 @app.get("/")
 async def root():

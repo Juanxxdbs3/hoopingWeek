@@ -80,3 +80,72 @@ class SimpleResponse(BaseModel):
     ok: bool
     message: str
     reservation: Optional[dict] = None
+
+
+# ============================================
+# MANAGER SHIFTS SCHEMAS
+# ============================================
+
+class ManagerShiftCreate(BaseModel):
+    """Schema para crear turno de manager"""
+    manager_id: int = Field(..., gt=0, description="ID del manager")
+    field_id: int = Field(..., gt=0, description="ID del campo")
+    day_of_week: int = Field(..., ge=0, le=6, description="Día (0=Domingo, 6=Sábado)")
+    start_time: str = Field(..., pattern=r"^\d{2}:\d{2}:\d{2}$", description="HH:MM:SS")
+    end_time: str = Field(..., pattern=r"^\d{2}:\d{2}:\d{2}$", description="HH:MM:SS")
+    active: bool = Field(default=True, description="Si el turno está activo")
+    note: Optional[str] = Field(None, max_length=500, description="Nota opcional")
+
+    @field_validator('end_time')
+    @classmethod
+    def validate_times(cls, end_time: str, info) -> str:
+        """Validar que end_time > start_time"""
+        start_time = info.data.get('start_time')
+        if start_time and end_time <= start_time:
+            raise ValueError('end_time debe ser mayor que start_time')
+        return end_time
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [{
+                "manager_id": 16,
+                "field_id": 5,
+                "day_of_week": 1,
+                "start_time": "08:00:00",
+                "end_time": "16:00:00",
+                "active": True,
+                "note": "Turno matutino lunes"
+            }]
+        }
+    }
+
+
+class ManagerShiftUpdate(BaseModel):
+    """Schema para actualizar turno (todos los campos opcionales)"""
+    manager_id: Optional[int] = Field(None, gt=0)
+    field_id: Optional[int] = Field(None, gt=0)
+    day_of_week: Optional[int] = Field(None, ge=0, le=6)
+    start_time: Optional[str] = Field(None, pattern=r"^\d{2}:\d{2}:\d{2}$")
+    end_time: Optional[str] = Field(None, pattern=r"^\d{2}:\d{2}:\d{2}$")
+    active: Optional[bool] = None
+    note: Optional[str] = Field(None, max_length=500)
+
+    @model_validator(mode='after')
+    def validate_times_if_both_present(self):
+        """Si ambos horarios están presentes, validar que end > start"""
+        if self.start_time and self.end_time:
+            if self.end_time <= self.start_time:
+                raise ValueError('end_time debe ser mayor que start_time')
+        return self
+
+
+class ManagerShiftResponse(BaseModel):
+    """Schema de respuesta de turno"""
+    id: int
+    manager_id: int
+    field_id: int
+    day_of_week: int
+    start_time: str
+    end_time: str
+    active: bool
+    note: Optional[str] = None
