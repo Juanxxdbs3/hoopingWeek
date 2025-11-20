@@ -1,13 +1,30 @@
 from fastapi import FastAPI
-from app.routers import health, reservations, users, reservations_approvals, fields, manager_shifts  # ← AGREGAR
+from app.routers import health, reservations, users, reservations_approvals, fields, manager_shifts, auth  # ← AGREGAR
 from app.config.settings import settings
+from fastapi.middleware.cors import CORSMiddleware # <--- IMPORTAR ESTO
 
 app = FastAPI(
     title="Hooping Week Broker",
     version="1.0.0"
 )
 
+# --- AUTORIZAR FRONTEND ---
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+# --------------------
+
 # Routers
+app.include_router(auth.router)
 app.include_router(health.router)
 app.include_router(reservations.router)
 app.include_router(users.router)

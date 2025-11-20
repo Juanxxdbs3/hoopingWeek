@@ -300,4 +300,46 @@ class UserRepository {
         }
     }
 
+        /**
+     * Retorna fila con password_hash para autenticación (por email)
+     * Devuelve array asociativo o null
+     */
+    public function findAuthByEmail(string $email): ?array {
+    $pdo = BDConnection::getConnection();
+    try {
+        $sql = "SELECT u.*, r.name AS role_name, s.name AS state_name, s2.name AS athlete_state_name
+                FROM users u
+                LEFT JOIN roles r ON u.role_id = r.id
+                LEFT JOIN user_states s ON u.state_id = s.id
+                LEFT JOIN user_states s2 ON u.athlete_state_id = s2.id
+                WHERE u.email = :email LIMIT 1";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([':email' => $email]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $row ? $row : null;
+    } finally {
+        BDConnection::releaseConnection($pdo);
+    }
 }
+
+public function findAuthById(int $id): ?array {
+    $pdo = BDConnection::getConnection();
+    try {
+        $sql = "SELECT u.*, r.name AS role_name, s.name AS state_name, s2.name AS athlete_state_name
+                FROM users u
+                LEFT JOIN roles r ON u.role_id = r.id
+                LEFT JOIN user_states s ON u.state_id = s.id
+                LEFT JOIN user_states s2 ON u.athlete_state_id = s2.id
+                WHERE u.id = :id LIMIT 1";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $row ? $row : null;
+    } finally {
+        BDConnection::releaseConnection($pdo);
+    }
+}
+
+
+}
+

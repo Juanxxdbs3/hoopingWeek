@@ -156,4 +156,51 @@ class UserService {
             ]
         ];
     }
+
+    public function authenticate(array $payload): array {
+        $identifier = $payload['identifier'] ?? null;
+        $password = $payload['password'] ?? null;
+
+        if ($identifier === null || $password === null) {
+            return ['ok' => false, 'status' => 400, 'error' => 'identifier and password required'];
+        }
+
+        // ✅ Usar el repo ya instanciado en __construct
+        $row = null;
+        
+        // Intentar por id si es numérico
+        if (ctype_digit((string)$identifier)) {
+            $row = $this->repo->findAuthById((int)$identifier);
+        }
+        
+        // Si no encontró, intentar por email
+        if (!$row) {
+            $row = $this->repo->findAuthByEmail((string)$identifier);
+        }
+
+        if (!$row) {
+            return ['ok' => false, 'status' => 401, 'error' => 'Usuario no encontrado'];
+        }
+
+        $hash = $row['password_hash'] ?? null;
+
+        // Verificar contraseña
+        if ($hash === null) {
+            // Usuario sin hash (caso temporal de admin sin password)
+            if ($password !== "") {
+                return ['ok' => false, 'status' => 401, 'error' => 'Credenciales inválidas'];
+            }
+        } else {
+            if (!password_verify($password, $hash)) {
+                return ['ok' => false, 'status' => 401, 'error' => 'Credenciales inválidas'];
+            }
+        }
+
+        // Quitar campos sensibles
+        unset($row['password_hash']);
+
+        return ['ok' => true, 'user' => $row];
+    }
+
+
 }

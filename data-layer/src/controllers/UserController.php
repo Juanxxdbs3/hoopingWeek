@@ -179,4 +179,48 @@ class UserController {
             return $response->withHeader('Content-Type','application/json')->withStatus(500);
         }
     }
+
+    public function authenticate(Request $request, Response $response): Response {
+        // Leer body de forma segura
+        $body = (array)$request->getParsedBody();
+        $identifier = array_key_exists('identifier', $body) ? $body['identifier'] : null;
+        $password = array_key_exists('password', $body) ? $body['password'] : null;
+
+        // Requerimos que las claves existan en el body
+        if ($identifier === null || $password === null) {
+            $payload = ['ok' => false, 'error' => 'identifier and password required'];
+            $response->getBody()->write(json_encode($payload));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        try {
+            // ✅ CORRECCIÓN: Solo usar $this->service (que ya está instanciado en __construct)
+            $result = $this->service->authenticate([
+                'identifier' => $identifier, 
+                'password' => $password
+            ]);
+
+            // Validar respuesta del servicio
+            if (!isset($result['ok']) || $result['ok'] !== true) {
+                $status = $result['status'] ?? 401;
+                $payload = ['ok' => false, 'error' => $result['error'] ?? 'Invalid credentials'];
+                $response->getBody()->write(json_encode($payload));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus($status);
+            }
+
+            // OK -> devolver usuario sin password_hash
+            $payload = ['ok' => true, 'user' => $result['user']];
+            $response->getBody()->write(json_encode($payload));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+
+        } catch (\Throwable $e) {
+            // Log del error
+            error_log("Error en authenticate: " . $e->getMessage());
+            $payload = ['ok' => false, 'error' => 'internal error'];
+            $response->getBody()->write(json_encode($payload));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
+    }
+
+
 }

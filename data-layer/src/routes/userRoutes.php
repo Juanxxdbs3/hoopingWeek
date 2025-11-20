@@ -65,15 +65,21 @@ return function($app, $config) {
 
     //Endpoints registrados hasta ahora.
     $app->get('/routes', function ($request, $response) use ($app) {
-    $routes = [];
-    foreach ($app->getRouteCollector()->getRoutes() as $route) {
-        $routes[] = [
-            'method' => $route->getMethods(),
-            'pattern' => $route->getPattern()
-        ];
-    }
-    $response->getBody()->write(json_encode($routes, JSON_PRETTY_PRINT));
-    return $response->withHeader('Content-Type', 'application/json');
-});
+        $routes = [];
+        foreach ($app->getRouteCollector()->getRoutes() as $route) {
+            $routes[] = [
+                'method' => $route->getMethods(),
+                'pattern' => $route->getPattern()
+            ];
+        }
+        $response->getBody()->write(json_encode($routes, JSON_PRETTY_PRINT));
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+
+// dentro de la función de rutas
+    $app->post('/api/users/authenticate', function($request, $response) use ($ctrl) {
+        return $ctrl->authenticate($request, $response, []);
+    });
+
 
 };

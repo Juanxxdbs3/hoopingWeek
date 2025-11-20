@@ -1,7 +1,11 @@
-from fastapi import APIRouter, HTTPException, status, Body, BackgroundTasks
+# broker/app/routers/reservation_approvals.py
+from fastapi import APIRouter, HTTPException, status, Body, BackgroundTasks, Depends
 from datetime import datetime
+from typing import Dict, Any
 from app.services.approval_orchestrator import ApprovalOrchestrator
-from app.models.schemas import ApproveRequest, RejectRequest, SimpleResponse
+from app.models.schemas import ApproveRequest, RejectRequest
+from app.core.deps import get_current_active_user, require_any_role
+from app.config.settings import settings
 
 router = APIRouter(prefix="/api/reservations", tags=["approvals"])
 
@@ -20,38 +24,49 @@ async def _log_notification(action: str, reservation_id: int, user_id: int, mess
     ═══════════════════════════════════════════════
     """)
 
-@router.patch("/{reservation_id}/approve", response_model=SimpleResponse)
+@router.patch("/{reservation_id}/approve")
 async def approve_reservation(
     reservation_id: int, 
     body: ApproveRequest = Body(...),
-    background_tasks: BackgroundTasks = BackgroundTasks()
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+    current_user: Dict[str, Any] = Depends(
+        require_any_role(
+            settings.ROLE_FIELD_MANAGER_ID,
+            settings.ROLE_SUPER_ADMIN_ID
+        )
+    )
 ):
     """
-    Aprueba una reserva pendiente
-    
-    **Body esperado:**
-    ```json
-    {
-      "approver_id": 1,
-      "note": "Opcional"
-    }
-    ```
+    Aprueba una reserva pendiente.
     
     **Permisos:**
-    - Super admin: puede aprobar cualquier reserva
-    - Field manager: solo puede aprobar reservas de campos que administra en su turno
-    """
-    print(f"🔍 Aprobando reserva {reservation_id} por usuario {body.approver_id}")
+    - Field Manager: solo puede aprobar reservas de campos que gestiona en su turno
+    - Super Admin: puede aprobar cualquier reserva
     
+    **Validaciones:**
+    - El approver_id debe coincidir con el usuario autenticado
+    - La reserva debe estar en estado 'pending'
+    - Si es Field Manager, debe estar en su turno asignado
+    """
+    user_id = current_user.get("id")
+    role_id = current_user.get("role_id")
+
+    # Validar que approver_id coincida con usuario autenticado
+    if body.approver_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El approver_id debe coincidir con tu usuario"
+        )
+
+    print(f"🔍 Aprobando reserva {reservation_id} por usuario {body.approver_id} (role: {role_id})")
+
     orchestrator = ApprovalOrchestrator()
     result = await orchestrator.approve_reservation(
         reservation_id, 
         body.approver_id, 
         body.note
     )
-    
-    print(f"📊 Resultado: {result}")
-    
+
     if not result.get("ok"):
         code = result.get("code", 400)
         if code == 403:
@@ -63,7 +78,7 @@ async def approve_reservation(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=result.get("message")
         )
-    
+
     # Notificación en background
     reservation = result.get("reservation", {})
     applicant_id = reservation.get("applicant_id")
@@ -75,39 +90,43 @@ async def approve_reservation(
             applicant_id,
             f"Tu reserva #{reservation_id} ha sido aprobada"
         )
-    
+
     return result
 
-@router.patch("/{reservation_id}/reject", response_model=SimpleResponse)
+
+@router.patch("/{reservation_id}/reject")
 async def reject_reservation(
     reservation_id: int, 
     body: RejectRequest = Body(...),
-    background_tasks: BackgroundTasks = BackgroundTasks()
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+    current_user: Dict[str, Any] = Depends(
+        require_any_role(
+            settings.ROLE_FIELD_MANAGER_ID,
+            settings.ROLE_SUPER_ADMIN_ID
+        )
+    )
 ):
     """
-    Rechaza una reserva pendiente
+    Rechaza una reserva pendiente.
     
-    **Body esperado:**
-    ```json
-    {
-      "approver_id": 1,
-      "rejection_reason": "Motivo del rechazo (mínimo 10 caracteres)"
-    }
-    ```
-    
-    **Permisos:** Mismos que approve
+    **Mismas validaciones que approve**
     """
-    print(f"🔍 Rechazando reserva {reservation_id} por usuario {body.approver_id}")
-    
+    user_id = current_user.get("id")
+    role_id = current_user.get("role_id")
+
+    if body.approver_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El approver_id debe coincidir con tu usuario"
+        )
+
     orchestrator = ApprovalOrchestrator()
     result = await orchestrator.reject_reservation(
         reservation_id,
         body.approver_id,
         body.rejection_reason
     )
-    
-    print(f"📊 Resultado: {result}")
-    
+
     if not result.get("ok"):
         code = result.get("code", 400)
         if code == 403:
@@ -119,8 +138,8 @@ async def reject_reservation(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=result.get("message")
         )
-    
-    # Notificación en background
+
+    # Notificación
     reservation = result.get("reservation", {})
     applicant_id = reservation.get("applicant_id")
     if applicant_id:
@@ -129,59 +148,53 @@ async def reject_reservation(
             "REJECTION",
             reservation_id,
             applicant_id,
-            f"Tu reserva #{reservation_id} ha sido rechazada"
+            f"Tu reserva #{reservation_id} ha sido rechazada: {body.rejection_reason}"
         )
-    
+
     return result
 
-@router.patch("/{reservation_id}/cancel", response_model=SimpleResponse)
+
+@router.patch("/{reservation_id}/cancel")
 async def cancel_reservation(
     reservation_id: int, 
     body: dict = Body(...),
-    background_tasks: BackgroundTasks = BackgroundTasks()
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+    current_user: Dict[str, Any] = Depends(get_current_active_user)
 ):
     """
-    Cancela una reserva
-    
-    **Body esperado:**
-    ```json
-    {
-      "cancelled_by": 10,
-      "cancellation_reason": "No puedo asistir"
-    }
-    ```
+    Cancela una reserva.
     
     **Permisos:**
-    - Super admin: cualquier reserva
-    - Applicant: su propia reserva
-    - Field manager: reservas de su campo
+    - Atleta/Entrenador: solo puede cancelar sus propias reservas
+    - Field Manager: puede cancelar reservas de sus campos
+    - Super Admin: puede cancelar cualquiera
     """
     cancelled_by = body.get("cancelled_by")
     cancellation_reason = body.get("cancellation_reason")
-    
+
     if not cancelled_by or not cancellation_reason:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="cancelled_by y cancellation_reason son requeridos"
         )
-    
-    if len(cancellation_reason) < 5:
+
+    user_id = current_user.get("id")
+    role_id = current_user.get("role_id")
+
+    # Validar que cancelled_by coincida con usuario autenticado (salvo SuperAdmin)
+    if role_id != settings.ROLE_SUPER_ADMIN_ID and cancelled_by != user_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="cancellation_reason debe tener al menos 5 caracteres"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo puedes cancelar tus propias reservas"
         )
-    
-    print(f"🔍 Cancelando reserva {reservation_id} por usuario {cancelled_by}")
-    
+
     orchestrator = ApprovalOrchestrator()
     result = await orchestrator.cancel_reservation(
         reservation_id,
         cancelled_by,
         cancellation_reason
     )
-    
-    print(f"📊 Resultado: {result}")
-    
+
     if not result.get("ok"):
         code = result.get("code", 400)
         if code == 403:
@@ -193,8 +206,8 @@ async def cancel_reservation(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=result.get("message")
         )
-    
-    # Notificación en background
+
+    # Notificación
     reservation = result.get("reservation", {})
     applicant_id = reservation.get("applicant_id")
     if applicant_id and applicant_id != cancelled_by:
@@ -205,9 +218,10 @@ async def cancel_reservation(
             applicant_id,
             f"Reserva #{reservation_id} cancelada: {cancellation_reason}"
         )
-    
+
     return result
 
+'''
 @router.get("", response_model=dict)
 async def list_reservations(
     field_id: int = None,
@@ -217,27 +231,17 @@ async def list_reservations(
 ):
     """
     Lista reservas con filtros opcionales
-    
-    **Query params:**
-    - field_id: Filtrar por campo (opcional)
-    - status: Filtrar por estado (pending, approved, rejected, cancelled)
-    - limit: Número máximo de resultados (default: 100)
-    - offset: Desplazamiento para paginación (default: 0)
-    
-    **Ejemplo:**
-    ```
-    GET /api/reservations?field_id=3&status=pending
-    ```
     """
     from app.services.data_layer_client import DataLayerClient
-    
+
     client = DataLayerClient()
     params = {"limit": limit, "offset": offset}
-    
+
     if field_id:
         params["field_id"] = field_id
     if status:
         params["status"] = status
-    
+
     result = await client.get("/api/reservations", params)
     return result
+'''

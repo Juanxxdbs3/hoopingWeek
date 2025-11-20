@@ -20,7 +20,11 @@ class Settings(BaseSettings):
     ROLE_TRAINER_ID: int = 2
     ROLE_FIELD_MANAGER_ID: int = 3
     ROLE_SUPER_ADMIN_ID: int = 4
-    
+
+    # JWT
+    jwt_secret: str = "tu_secreto_super_seguro_cambialo_en_produccion"   # en .env pones un valor real
+    jwt_exp_minutes: int = 1440  # 24 horas
+
     class Config:
         env_file = ".env"
         case_sensitive = False

@@ -1,20 +1,22 @@
-from fastapi import APIRouter, HTTPException, Query, status
-from typing import Optional
+from fastapi import APIRouter, HTTPException, Query, status, Depends
+from typing import Optional, Dict, Any
 from app.models.schemas import ManagerShiftCreate, ManagerShiftUpdate
 from app.services.data_layer_client import DataLayerClient
+from app.core.deps import require_any_role, get_current_active_user
+from app.config.settings import settings
 
 router = APIRouter(prefix="/api/manager-shifts", tags=["manager-shifts"])
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-async def create_manager_shift(shift: ManagerShiftCreate):
+async def create_manager_shift(
+    shift: ManagerShiftCreate,
+    current_user: Dict[str, Any] = Depends(
+        require_any_role(settings.ROLE_SUPER_ADMIN_ID)
+    )
+):
     """
-    Crear turno de manager
-    
-    **Validaciones:**
-    - Manager debe existir y tener role_id = 3 (field_manager)
-    - Campo debe existir
-    - Horarios válidos (start < end)
-    - No solapamiento con otros turnos del mismo manager en el mismo día
+    Crear turno de manager.
+    **Solo SuperAdmin puede crear turnos.**
     """
     client = DataLayerClient()
     
@@ -28,19 +30,14 @@ async def create_manager_shift(shift: ManagerShiftCreate):
             )
         
         user = user_response.get("user", {})
-        if user.get("role_id") != 3:
+        if user.get("role_id") != settings.ROLE_FIELD_MANAGER_ID:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Usuario {shift.manager_id} no tiene rol de manager (role_id debe ser 3)"
+                detail=f"Usuario {shift.manager_id} no tiene rol de manager"
             )
     except HTTPException:
         raise
     except Exception as e:
-        if "404" in str(e):
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Usuario {shift.manager_id} no encontrado"
-            )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error al validar usuario"
@@ -110,21 +107,32 @@ async def create_manager_shift(shift: ManagerShiftCreate):
 
 @router.get("")
 async def list_manager_shifts(
-    manager_id: Optional[int] = Query(None, description="Filtrar por manager"),
-    field_id: Optional[int] = Query(None, description="Filtrar por campo"),
-    day_of_week: Optional[int] = Query(None, ge=0, le=6, description="Filtrar por día"),
-    active: Optional[bool] = Query(None, description="Filtrar por activos"),
+    manager_id: Optional[int] = Query(None),
+    field_id: Optional[int] = Query(None),
+    day_of_week: Optional[int] = Query(None, ge=0, le=6),
+    active: Optional[bool] = Query(None),
     limit: int = Query(100, ge=1, le=500),
-    offset: int = Query(0, ge=0)
+    offset: int = Query(0, ge=0),
+    current_user: Dict[str, Any] = Depends(get_current_active_user)
 ):
     """
-    Listar turnos de managers con filtros opcionales
+    Listar turnos.
+    - Field Managers: solo ven sus propios turnos
+    - Super Admin: ve todos
     """
     client = DataLayerClient()
     
     params = {"limit": limit, "offset": offset}
-    if manager_id is not None:
+    
+    # Si no es SuperAdmin, filtrar por su propio manager_id
+    role_id = current_user.get("role_id")
+    user_id = current_user.get("id")
+    
+    if role_id == settings.ROLE_FIELD_MANAGER_ID:
+        params["manager_id"] = user_id
+    elif manager_id is not None:
         params["manager_id"] = manager_id
+        
     if field_id is not None:
         params["field_id"] = field_id
     if day_of_week is not None:
