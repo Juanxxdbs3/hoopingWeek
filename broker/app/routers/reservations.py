@@ -1,5 +1,5 @@
-from fastapi import APIRouter, HTTPException, Depends
-from typing import Dict, Any
+from fastapi import APIRouter, HTTPException, Depends, Query
+from typing import Dict, Any, Optional
 from app.services.reservation_orchestrator import ReservationOrchestrator
 from app.models.schemas import (
     ReservationCreateRequest, 
@@ -49,11 +49,11 @@ async def create_reservation_validated(
 
 @router.get("")
 async def list_reservations(
-    field_id: int = None,
-    status: str = None,
-    limit: int = 100,
-    offset: int = 0,
-    current_user: Dict[str, Any] = Depends(get_current_active_user)
+    field_id: Optional[int] = None,
+    applicant_id: Optional[int] = None,
+    status: Optional[str] = None,
+    limit: int = Query(20, le=100),
+    offset: int = Query(0, ge=0)
 ):
     """
     Lista reservas con filtros opcionales.

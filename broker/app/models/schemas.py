@@ -67,13 +67,17 @@ class UserRegisterResponse(BaseModel):
 
 class ApproveRequest(BaseModel):
     """Request para aprobar una reserva"""
-    approver_id: int = Field(..., description="ID del usuario que aprueba")
-    note: Optional[str] = Field(None, max_length=500, description="Nota opcional")
+    approver_id: Optional[int] = None # Opcional porque lo tomamos del token
+    note: Optional[str] = Field(None, max_length=500)
 
 class RejectRequest(BaseModel):
     """Request para rechazar una reserva"""
-    approver_id: int = Field(..., description="ID del usuario que rechaza")
-    rejection_reason: str = Field(..., min_length=10, max_length=500, description="Motivo del rechazo")
+    approver_id: Optional[int] = None
+    rejection_reason: str = Field(..., min_length=3, max_length=500)
+
+class ReservationCancelRequest(BaseModel):
+    """Request para cancelar una reserva"""
+    reason: str = Field(..., min_length=3, max_length=500)
 
 class SimpleResponse(BaseModel):
     """Respuesta simple con mensaje"""
