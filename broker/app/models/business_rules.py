@@ -9,7 +9,7 @@ class BusinessRules:
     DS_RULES = {
         "min_duration_hours": 0.5,
         "max_duration_hours": 4.0,
-        "min_advance_hours": 1,  # ← Cambiado de 2 a 1
+        "min_advance_hours": 1,
         "max_advance_days": 30
     }
     
@@ -31,7 +31,7 @@ class BusinessRules:
     # Ajuste de prioridad por rol
     PRIORITY_ADJUSTMENT_BY_ROLE = {
         "super_admin": -1,
-        "field_manager": 0,  # ← No debería reservar, pero si pasa, sin ajuste
+        "field_manager": 0,
         "trainer": -1,
         "athlete": 0
     }
@@ -57,10 +57,50 @@ class BusinessRules:
     }
     
     @staticmethod
-    def validate_duration(start: datetime, end: datetime) -> tuple[bool, str]:
-        """Valida duración de la reserva"""
+    def validate_duration(start: datetime, end: datetime, activity_type: Optional[str] = None) -> tuple[bool, str]:
+        """Valida duración de la reserva según reglas del tipo de actividad"""
+        
         duration_hours = (end - start).total_seconds() / 3600
         
+        # ================================
+        # 1. Campeonatos → SIN LÍMITE
+        # ================================
+        if activity_type == "match_championship":
+            if duration_hours < 0.5:
+                return False, "Duración mínima para campeonatos: 30 minutos"
+            return True, ""
+        
+        # ================================
+        # 2. Práctica individual → EXACTAMENTE 1h
+        # ================================
+        if activity_type == "practice_individual":
+            if abs(duration_hours - 1.0) > 0.01:
+                return False, "Las prácticas individuales deben durar exactamente 1 hora"
+            return True, ""
+        
+        # ================================
+        # 3. Práctica grupal → entre 1 y 2 horas
+        # ================================
+        if activity_type == "practice_group":
+            if duration_hours < 1:
+                return False, "La práctica grupal debe durar mínimo 1 hora"
+            if duration_hours > 2:
+                return False, "La práctica grupal no puede durar más de 2 horas"
+            return True, ""
+        
+        # ================================
+        # 4. Partido amistoso → hasta 6 horas
+        # ================================
+        if activity_type == "match_friendly":
+            if duration_hours < 1:
+                return False, "El partido debe durar mínimo 1 hora"
+            if duration_hours > 6:
+                return False, "El partido no puede durar más de 6 horas"
+            return True, ""
+        
+        # ================================
+        # 5. Fallback → reglas generales
+        # ================================
         if duration_hours < BusinessRules.DS_RULES["min_duration_hours"]:
             return False, f"Duración mínima: {BusinessRules.DS_RULES['min_duration_hours']} horas"
         

@@ -149,3 +149,86 @@ class ManagerShiftResponse(BaseModel):
     end_time: str
     active: bool
     note: Optional[str] = None
+
+
+# ========== TEAMS SCHEMAS ==========
+class TeamCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=255)
+    sport: str = Field(..., min_length=2, max_length=100)
+    type: str = Field(..., min_length=2, max_length=100, example="club")
+    trainer_id: int = Field(..., gt=0)
+    locality: Optional[str] = Field(None, max_length=255)
+
+class TeamUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=255)
+    sport: Optional[str] = Field(None, min_length=2, max_length=100)
+    type: Optional[str] = Field(None, min_length=2, max_length=100)
+    trainer_id: Optional[int] = Field(None, gt=0)
+    locality: Optional[str] = Field(None, max_length=255)
+
+class TeamResponse(BaseModel):
+    id: int
+    name: str
+    sport: str
+    type: str
+    trainer_id: int
+    locality: Optional[str]
+    created_at: str
+
+class TeamMemberAdd(BaseModel):
+    athlete_id: int = Field(..., gt=0, description="ID del atleta (debe existir)")
+    join_date: Optional[date] = Field(None, description="Fecha de ingreso (default: hoy)")
+
+class TeamMemberResponse(BaseModel):
+    id: int
+    team_id: int
+    athlete_id: int
+    join_date: date
+    state: str
+    first_name: str
+    last_name: str
+    email: str
+    phone: Optional[str]
+
+# ========== CHAMPIONSHIPS SCHEMAS ==========
+class ChampionshipCreate(BaseModel):
+    name: str = Field(..., min_length=3, max_length=255)
+    organizer_id: int = Field(..., gt=0)
+    sport: str = Field(..., min_length=2, max_length=100)
+    start_date: date
+    end_date: date
+    status: Optional[str] = Field("planning", pattern="^(planning|active|finished|cancelled)$")
+
+    @model_validator(mode='after')
+    def validate_dates(self):
+        if self.start_date >= self.end_date:
+            raise ValueError('end_date debe ser posterior a start_date')
+        return self
+
+class ChampionshipUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=3, max_length=255)
+    organizer_id: Optional[int] = Field(None, gt=0)
+    sport: Optional[str] = Field(None, min_length=2, max_length=100)
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    status: Optional[str] = Field(None, pattern="^(planning|active|finished|cancelled)$")
+
+    @model_validator(mode='after')
+    def validate_dates(self):
+        if self.start_date and self.end_date:
+            if self.start_date >= self.end_date:
+                raise ValueError('end_date debe ser posterior a start_date')
+        return self
+
+class ChampionshipResponse(BaseModel):
+    id: int
+    name: str
+    organizer_id: int
+    sport: str
+    start_date: date
+    end_date: date
+    status: str
+    created_at: str
+
+class ChampionshipTeamAdd(BaseModel):
+    team_id: int = Field(..., gt=0)

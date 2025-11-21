@@ -29,10 +29,16 @@ class ReservationOrchestrator:
         """
         errors = []
         
-        # 1. Validar duración
-        valid, msg = self.rules.validate_duration(request.start_datetime, request.end_datetime)
+       # 1. Validar duración
+        valid, msg = self.rules.validate_duration(
+            request.start_datetime,
+            request.end_datetime,
+            request.activity_type
+        )
         if not valid:
             errors.append(msg)
+
+
         
         # 2. Validar anticipación
         valid, msg = self.rules.validate_advance_time(request.start_datetime)

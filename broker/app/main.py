@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routers import health, reservations, users, reservations_approvals, fields, manager_shifts, auth  # ← AGREGAR
+from app.routers import health, reservations, users, reservations_approvals, fields, manager_shifts, auth, teams, championships, matches as matches_router  # ← AGREGAR
 from app.config.settings import settings
 from fastapi.middleware.cors import CORSMiddleware # <--- IMPORTAR ESTO
 
@@ -31,6 +31,9 @@ app.include_router(users.router)
 app.include_router(reservations_approvals.router)
 app.include_router(fields.router)  # ← AGREGAR
 app.include_router(manager_shifts.router)  # ← AGREGAR después de fields.router
+app.include_router(teams.router)
+app.include_router(championships.router)
+app.include_router(matches_router.router)
 
 @app.get("/")
 async def root():
