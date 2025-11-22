@@ -53,7 +53,8 @@ async def list_reservations(
     applicant_id: Optional[int] = None,
     status: Optional[str] = None,
     limit: int = Query(20, le=100),
-    offset: int = Query(0, ge=0)
+    offset: int = Query(0, ge=0),
+    current_user: Dict[str, Any] = Depends(get_current_active_user)  # ⬅️ AÑADIDO AQUÍ
 ):
     """
     Lista reservas con filtros opcionales.
@@ -72,9 +73,13 @@ async def list_reservations(
     role_id = current_user.get("role_id")
     user_id = current_user.get("id")
 
-    # Si no es SuperAdmin, filtrar por applicant_id
+    # Si no es SuperAdmin, forzar filtro por applicant_id del usuario actual
     if role_id != settings.ROLE_SUPER_ADMIN_ID:
         params["applicant_id"] = user_id
+    else:
+        # Si es SuperAdmin y pasó applicant_id como query param, usarlo
+        if applicant_id is not None:
+            params["applicant_id"] = applicant_id
 
     if field_id:
         params["field_id"] = field_id

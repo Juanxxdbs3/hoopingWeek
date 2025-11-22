@@ -1,110 +1,118 @@
 <template>
-  <div class="container-fluid p-0">
-    <div class="d-flex">
-      <!-- SIDEBAR -->
-      <div class="menu">
-        <div class="menu-container">
-          <div class="profile-container text-center">
-            <img 
-              :src="`https://ui-avatars.com/api/?name=${user.first_name}+${user.last_name}&background=667eea&color=fff`" 
-              alt="Profile" 
-              class="profile-img"
-            />
-            <p class="profile-title mt-2">{{ user.first_name }} {{ user.last_name }}</p>
-            <p class="profile-subtitle">{{ user.email }}</p>
-            <span class="badge bg-primary mb-3">{{ user.role_name }}</span>
-            <button @click="logout" class="logout-btn btn btn-outline-danger btn-sm w-100">
-              Cerrar Sesión
-            </button>
+  <div class="admin-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="profile-section">
+        <div class="avatar">{{ userInitials }}</div>
+        <h3 class="user-name">{{ userName }}</h3>
+        <p class="user-email">{{ userEmail }}</p>
+        <span class="badge-role">super_admin</span>
+      </div>
+
+      <button class="btn-logout" @click="logout">Cerrar Sesión</button>
+
+      <!-- MENÚ DE NAVEGACIÓN -->
+      <nav class="sidebar-nav">
+        <router-link to="/admin/dashboard" class="nav-item" active-class="active">
+          <i class="bi bi-speedometer2"></i>
+          Dashboard
+        </router-link>
+        
+        <router-link to="/admin/reservations" class="nav-item" active-class="active">
+          <i class="bi bi-calendar-check"></i>
+          Reservas
+        </router-link>
+
+        <router-link to="/admin/users" class="nav-item" active-class="active">
+          <i class="bi bi-people"></i>
+          Usuarios
+        </router-link>
+
+        <router-link to="/admin/manager-shifts" class="nav-item" active-class="active">
+          <i class="bi bi-clock-history"></i>
+          Turnos Managers
+        </router-link>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="dashboard-header">
+        <div>
+          <h1 class="dashboard-title">Panel de Control</h1>
+          <p class="dashboard-subtitle">Bienvenido, {{ firstName }}</p>
+        </div>
+        <div class="header-date">
+          <small>Fecha de hoy</small>
+          <strong>{{ currentDate }}</strong>
+        </div>
+      </header>
+
+      <!-- Tarjetas de estadísticas -->
+      <div class="stats-grid">
+        <div class="stat-card stat-primary">
+          <div class="stat-icon">
+            <i class="bi bi-calendar-check-fill"></i>
           </div>
-          
-          <div class="menu-btn menu-active mt-4">
-            <i class="bi bi-speedometer2 me-2"></i>
-            <p class="menu-text d-inline">Dashboard</p>
+          <div class="stat-info">
+            <h3>{{ stats.total }}</h3>
+            <p>Reservas Totales</p>
+          </div>
+        </div>
+
+        <div class="stat-card stat-warning">
+          <div class="stat-icon">
+            <i class="bi bi-clock-fill"></i>
+          </div>
+          <div class="stat-info">
+            <h3>{{ stats.pending }}</h3>
+            <p>Pendientes</p>
+          </div>
+        </div>
+
+        <div class="stat-card stat-success">
+          <div class="stat-icon">
+            <i class="bi bi-check-circle-fill"></i>
+          </div>
+          <div class="stat-info">
+            <h3>{{ stats.approved }}</h3>
+            <p>Aprobadas</p>
+          </div>
+        </div>
+
+        <div class="stat-card stat-danger">
+          <div class="stat-icon">
+            <i class="bi bi-x-circle-fill"></i>
+          </div>
+          <div class="stat-info">
+            <h3>{{ stats.rejected }}</h3>
+            <p>Rechazadas</p>
           </div>
         </div>
       </div>
 
-      <!-- CONTENIDO PRINCIPAL -->
-      <div class="dash-body p-4">
-        <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
+      <!-- Tabla de reservas -->
+      <div class="card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Listado de Reservas</h5>
           <div>
-            <h2 class="heading-main12 mb-1">Panel de Control</h2>
-            <p class="text-muted">Bienvenido, {{ user.first_name }}</p>
-          </div>
-          <div class="text-end">
-            <small class="text-muted">Fecha de hoy</small>
-            <p class="mb-0 fw-bold">{{ currentDate }}</p>
-          </div>
-        </div>
-        
-        <!-- ESTADÍSTICAS -->
-        <div class="row g-3 mt-2">
-          <div class="col-md-3">
-            <div class="dashboard-card">
-              <div class="card-icon bg-primary">
-                <i class="bi bi-calendar-check"></i>
-              </div>
-              <div>
-                <div class="card-number">{{ stats.total }}</div>
-                <div class="card-label">Reservas Totales</div>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <div class="dashboard-card">
-              <div class="card-icon bg-warning">
-                <i class="bi bi-clock-history"></i>
-              </div>
-              <div>
-                <div class="card-number">{{ stats.pending }}</div>
-                <div class="card-label">Pendientes</div>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <div class="dashboard-card">
-              <div class="card-icon bg-success">
-                <i class="bi bi-check-circle"></i>
-              </div>
-              <div>
-                <div class="card-number">{{ stats.approved }}</div>
-                <div class="card-label">Aprobadas</div>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <div class="dashboard-card">
-              <div class="card-icon bg-danger">
-                <i class="bi bi-x-circle"></i>
-              </div>
-              <div>
-                <div class="card-number">{{ stats.rejected }}</div>
-                <div class="card-label">Rechazadas</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- TABLA DE RESERVAS -->
-        <div class="mt-5">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="mb-0">Listado de Reservas</h4>
-            <button class="btn btn-primary btn-sm" @click="fetchReservations">
-              <i class="bi bi-arrow-clockwise me-1"></i>
-              Actualizar
+            <button class="btn btn-primary me-2" @click="loadReservations">
+              <i class="bi bi-arrow-clockwise"></i> Actualizar
             </button>
+            <router-link to="/admin/reservations" class="btn btn-success">
+              <i class="bi bi-plus-circle"></i> Nueva Reserva
+            </router-link>
           </div>
-          
-          <div v-if="loading" class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Cargando...</span>
-            </div>
+        </div>
+        <div class="card-body p-0">
+          <div v-if="loading" class="text-center p-4">
+            <div class="spinner-border text-primary"></div>
           </div>
-          
+          <div v-else-if="reservations.length === 0" class="text-center p-4 text-muted">
+            No hay reservas registradas
+          </div>
           <div v-else class="table-responsive">
-            <table class="table table-hover align-middle">
+            <table class="table table-hover mb-0">
               <thead class="table-light">
                 <tr>
                   <th>ID</th>
@@ -113,7 +121,7 @@
                   <th>Fecha Inicio</th>
                   <th>Tipo</th>
                   <th>Estado</th>
-                  <th class="text-center">Acciones</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -122,36 +130,32 @@
                   <td>{{ res.applicant_id }}</td>
                   <td>Campo {{ res.field_id }}</td>
                   <td>{{ formatDate(res.start_datetime) }}</td>
-                  <td><span class="badge bg-info">{{ res.activity_type }}</span></td>
                   <td>
-                    <span :class="getStatusClass(res.status)">
-                      {{ getStatusLabel(res.status) }}
+                    <span class="badge" :class="typeBadge(res.activity_type)">
+                      {{ formatType(res.activity_type) }}
                     </span>
                   </td>
-                  <td class="text-center">
-                    <div v-if="res.status === 'pending'" class="btn-group btn-group-sm">
-                      <button 
-                        @click="approveReservation(res.id)" 
-                        class="btn btn-success"
-                        title="Aprobar"
-                      >
-                        <i class="bi bi-check-lg"></i>
-                      </button>
-                      <button 
-                        @click="rejectReservation(res.id)" 
-                        class="btn btn-danger"
-                        title="Rechazar"
-                      >
-                        <i class="bi bi-x-lg"></i>
-                      </button>
-                    </div>
-                    <span v-else class="text-muted">-</span>
+                  <td>
+                    <span class="badge" :class="statusBadge(res.status)">
+                      {{ res.status }}
+                    </span>
                   </td>
-                </tr>
-                <tr v-if="reservations.length === 0">
-                  <td colspan="7" class="text-center py-4 text-muted">
-                    <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                    No hay reservas registradas
+                  <td>
+                    <button 
+                      v-if="res.status === 'pending'" 
+                      class="btn btn-sm btn-success me-1"
+                      @click="approve(res.id)"
+                    >
+                      <i class="bi bi-check"></i>
+                    </button>
+                    <button 
+                      v-if="res.status === 'pending'" 
+                      class="btn btn-sm btn-danger"
+                      @click="reject(res.id)"
+                    >
+                      <i class="bi bi-x"></i>
+                    </button>
+                    <span v-else>-</span>
                   </td>
                 </tr>
               </tbody>
@@ -159,248 +163,362 @@
           </div>
         </div>
       </div>
-    </div>
+    </main>
   </div>
 </template>
 
-<script setup>
+<script>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '../../../services/api';
-import { useAuth } from '../../../composables/useAuth';
+import { getReservations, approveReservation, rejectReservation } from '@/services/api';
 
-const router = useRouter();
-const auth = useAuth();
+export default {
+  name: 'AdminDashboard',
+  setup() {
+    const router = useRouter();
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const reservations = ref([]);
+    const loading = ref(false);
 
-const user = ref({});
-const reservations = ref([]);
-const loading = ref(false);
-
-const currentDate = computed(() => {
-  return new Date().toLocaleDateString('es-ES', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-});
-
-const stats = computed(() => {
-  return {
-    total: reservations.value.length,
-    pending: reservations.value.filter(r => r.status === 'pending').length,
-    approved: reservations.value.filter(r => r.status === 'approved').length,
-    rejected: reservations.value.filter(r => r.status === 'rejected').length
-  };
-});
-
-onMounted(async () => {
-  const storedUser = auth.getUser();
-  if (!storedUser) {
-    router.push('/login');
-    return;
-  }
-  user.value = storedUser;
-  await fetchReservations();
-});
-
-const fetchReservations = async () => {
-  loading.value = true;
-  try {
-    const resp = await api.get('/api/reservations', {
-      params: { limit: 100, offset: 0 }
+    const userName = computed(() => `${user.first_name || ''} ${user.last_name || ''}`);
+    const userEmail = computed(() => user.email || '');
+    const firstName = computed(() => user.first_name || 'Admin');
+    const userInitials = computed(() => {
+      const first = user.first_name?.[0] || '';
+      const last = user.last_name?.[0] || '';
+      return (first + last).toUpperCase() || 'BM';
     });
-    
-    if (resp.data && resp.data.ok) {
-      reservations.value = resp.data.reservations?.data || resp.data.reservations || [];
-    } else {
-      reservations.value = [];
-    }
-  } catch (e) {
-    console.error("Error cargando reservas:", e?.response?.data || e);
-    alert('Error al cargar las reservas');
-  } finally {
-    loading.value = false;
-  }
-};
 
-const approveReservation = async (id) => {
-  if (!confirm('¿Aprobar esta reserva?')) return;
-  
-  try {
-    await api.patch(`/api/reservations/${id}/approve`, {
-      approver_id: user.value.id,
-      note: "Aprobado desde Dashboard Web"
+    const currentDate = computed(() => {
+      return new Date().toLocaleDateString('es-ES', {
+        weekday: 'long',
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      });
     });
-    await fetchReservations();
-  } catch (error) {
-    const msg = error?.response?.data?.detail || error.message;
-    alert('Error al aprobar: ' + msg);
-  }
-};
 
-const rejectReservation = async (id) => {
-  const reason = prompt('Motivo del rechazo:');
-  if (!reason) return;
-  
-  try {
-    await api.patch(`/api/reservations/${id}/reject`, {
-      approver_id: user.value.id,
-      rejection_reason: reason
+    const stats = computed(() => {
+      return {
+        total: reservations.value.length,
+        pending: reservations.value.filter(r => r.status === 'pending').length,
+        approved: reservations.value.filter(r => r.status === 'approved').length,
+        rejected: reservations.value.filter(r => r.status === 'rejected').length,
+      };
     });
-    await fetchReservations();
-  } catch (error) {
-    const msg = error?.response?.data?.detail || error.message;
-    alert('Error al rechazar: ' + msg);
-  }
-};
 
-const logout = () => {
-  if (confirm('¿Cerrar sesión?')) {
-    auth.logout();
-  }
-};
+    const loadReservations = async () => {
+      loading.value = true;
+      try {
+        const response = await getReservations();
+        reservations.value = response.data.reservations?.data || response.data.data || [];
+      } catch (error) {
+        console.error('Error cargando reservas:', error);
+      } finally {
+        loading.value = false;
+      }
+    };
 
-const getStatusClass = (status) => {
-  const classes = {
-    'approved': 'badge bg-success',
-    'rejected': 'badge bg-danger',
-    'pending': 'badge bg-warning text-dark',
-    'cancelled': 'badge bg-secondary'
-  };
-  return classes[status] || 'badge bg-secondary';
-};
+    const approve = async (id) => {
+      if (!confirm('¿Aprobar esta reserva?')) return;
+      try {
+        await approveReservation(id);
+        alert('Reserva aprobada');
+        loadReservations();
+      } catch (error) {
+        alert('Error al aprobar: ' + (error.response?.data?.detail || 'Error desconocido'));
+      }
+    };
 
-const getStatusLabel = (status) => {
-  const labels = {
-    'approved': 'Aprobada',
-    'rejected': 'Rechazada',
-    'pending': 'Pendiente',
-    'cancelled': 'Cancelada'
-  };
-  return labels[status] || status;
-};
+    const reject = async (id) => {
+      const reason = prompt('Motivo del rechazo:');
+      if (!reason) return;
+      try {
+        await rejectReservation(id, reason);
+        alert('Reserva rechazada');
+        loadReservations();
+      } catch (error) {
+        alert('Error al rechazar: ' + (error.response?.data?.detail || 'Error desconocido'));
+      }
+    };
 
-const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleString('es-ES', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+    const logout = () => {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user');
+      router.push('/login');
+    };
+
+    const formatDate = (datetime) => {
+      return new Date(datetime).toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    };
+
+    const formatType = (type) => {
+      const map = {
+        practice_individual: 'Práctica',
+        practice_group: 'Grupal',
+        match_friendly: 'Amistoso',
+        match_championship: 'Campeonato',
+      };
+      return map[type] || type;
+    };
+
+    const typeBadge = (type) => {
+      const map = {
+        match_championship: 'bg-info',
+        match_friendly: 'bg-primary',
+        practice_group: 'bg-success',
+        practice_individual: 'bg-secondary',
+      };
+      return map[type] || 'bg-secondary';
+    };
+
+    const statusBadge = (status) => {
+      const map = {
+        pending: 'bg-warning text-dark',
+        approved: 'bg-success',
+        rejected: 'bg-danger',
+        cancelled: 'bg-secondary',
+      };
+      return map[status] || 'bg-secondary';
+    };
+
+    onMounted(() => {
+      loadReservations();
+    });
+
+    return {
+      userName,
+      userEmail,
+      firstName,
+      userInitials,
+      currentDate,
+      reservations,
+      loading,
+      stats,
+      loadReservations,
+      approve,
+      reject,
+      logout,
+      formatDate,
+      formatType,
+      typeBadge,
+      statusBadge,
+    };
+  },
 };
 </script>
 
 <style scoped>
-.menu {
-  width: 280px;
-  background: white;
+.admin-layout {
+  display: flex;
   min-height: 100vh;
-  border-right: 1px solid #e2e8f0;
-  padding: 20px;
+  background: #f8f9fa;
 }
 
-.profile-img {
+.sidebar {
+  width: 280px;
+  background: white;
+  border-right: 1px solid #e0e0e0;
+  padding: 2rem 0;
+  position: fixed;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.profile-section {
+  text-align: center;
+  padding: 0 1.5rem 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 1rem;
+}
+
+.avatar {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid #667eea;
+  background: #6366f1;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 0 auto 1rem;
 }
 
-.profile-title {
-  font-size: 18px;
+.user-name {
+  font-size: 1.1rem;
   font-weight: 600;
-  color: #2d3748;
-  margin-bottom: 4px;
+  margin: 0.5rem 0 0.25rem;
 }
 
-.profile-subtitle {
-  font-size: 13px;
-  color: #718096;
+.user-email {
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin: 0;
 }
 
-.menu-btn {
-  padding: 12px 16px;
+.badge-role {
+  display: inline-block;
+  background: #6366f1;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.btn-logout {
+  width: calc(100% - 3rem);
+  margin: 1rem 1.5rem;
+  padding: 0.6rem;
+  background: #dc3545;
+  color: white;
+  border: none;
   border-radius: 8px;
   cursor: pointer;
+  font-weight: 500;
   transition: all 0.2s;
 }
 
-.menu-active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.btn-logout:hover {
+  background: #c82333;
+}
+
+.sidebar-nav {
+  padding: 0 1rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: #495057;
+  text-decoration: none;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s;
+}
+
+.nav-item:hover {
+  background: #f1f3f5;
+  color: #6366f1;
+}
+
+.nav-item.active {
+  background: #6366f1;
   color: white;
 }
 
-.dash-body {
+.main-content {
+  margin-left: 280px;
   flex: 1;
-  background-color: #f7fafc;
-  min-height: 100vh;
+  padding: 2rem;
 }
 
-.heading-main12 {
-  font-size: 28px;
-  font-weight: 700;
-  color: #2d3748;
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
 }
 
-.dashboard-card {
+.dashboard-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.dashboard-subtitle {
+  color: #6c757d;
+  margin: 0.25rem 0 0;
+}
+
+.header-date {
+  text-align: right;
+}
+
+.header-date small {
+  display: block;
+  color: #6c757d;
+  font-size: 0.85rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
   background: white;
   border-radius: 12px;
-  padding: 20px;
+  padding: 1.5rem;
   display: flex;
-  align-items: center;
-  gap: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s, box-shadow 0.2s;
+  gap: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.dashboard-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-}
-
-.card-icon {
-  width: 56px;
-  height: 56px;
+.stat-icon {
+  width: 60px;
+  height: 60px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  color: white;
+  font-size: 1.5rem;
 }
 
-.card-number {
-  font-size: 32px;
+.stat-primary .stat-icon {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.stat-warning .stat-icon {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.stat-success .stat-icon {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.stat-danger .stat-icon {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+.stat-info h3 {
+  font-size: 2rem;
   font-weight: 700;
-  color: #2d3748;
+  margin: 0 0 0.25rem;
 }
 
-.card-label {
-  font-size: 14px;
-  color: #718096;
+.stat-info p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 0.9rem;
 }
 
-.table {
+.card {
   background: white;
   border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   overflow: hidden;
 }
 
-.table thead {
-  background-color: #f7fafc;
-  font-weight: 600;
-  font-size: 14px;
-  color: #4a5568;
-}
-
-.table tbody tr {
-  transition: background-color 0.2s;
-}
-
-.table tbody tr:hover {
-  background-color: #f7fafc;
+.card-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  background: white;
 }
 </style>

@@ -3,6 +3,7 @@ import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
 import SignupView from '../views/SignUpView.vue'
 import AdminDashboard from '../views/Roles/Admin/AdminDashboard.vue'
+import AthleteDashboard from '../views/Roles/Athlete/AthleteDashboard.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -24,6 +25,12 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: [1] }
     },
     {
+      path: '/athlete/dashboard',
+      name: 'athlete.dashboard',
+      component: AthleteDashboard,
+      meta: { requiresAuth: true, roles: [1] } // Role 1 = Atleta
+    },
+    {
       path: '/trainer',
       name: 'trainer',
       component: () => import('../views/Roles/Trainer/TrainerDashboard.vue'),
@@ -34,6 +41,24 @@ const router = createRouter({
       name: 'manager',
       component: () => import('../views/Roles/Manager/ManagerDashboard.vue'),
       meta: { requiresAuth: true, roles: [3] }
+    },
+    {
+      path: '/admin/reservations',
+      name: 'admin.reservations',
+      component: () => import('../views/Roles/Admin/AdminReservations.vue'),
+      meta: { requiresAuth:true, roles: [4] }
+    },
+    {
+      path: '/admin/shifts',
+      name: 'admin.shifts',
+      component: () => import('../views/Roles/Admin/AdminManagerShifts.vue'),
+      meta: { requiresAuth:true, roles: [4] }
+    },
+    {
+      path: '/admin/users',
+      name: 'admin.users',
+      component: () => import('../views/Roles/Admin/AdminUsers.vue'),
+      meta: { requiresAuth:true, roles: [4] }
     }
   ]
 })
