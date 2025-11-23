@@ -212,7 +212,7 @@
 <script>
 
 import { ref, reactive, onMounted } from 'vue';
-import { getFields, createReservation, getUsers, getTeams, getChampionships, getTeamMembers } from '@/services/api';
+import { getFields, createReservation, createChampionshipMatch, getUsers, getTeams, getChampionships, getTeamMembers } from '@/services/api';
 import UserSearch from './UserSearch.vue';
 import { Modal } from 'bootstrap';
 
@@ -344,153 +344,191 @@ export default {
     };
 
     const handleSubmit = async () => {
-      // Validaciones generales
-      if (!form.applicant_id) {
-        error.value = 'Debes buscar y seleccionar un solicitante';
-        return;
-      }
-      if (!form.field_id) {
-        error.value = 'Debes seleccionar un campo';
-        return;
-      }
-      // Validaciones según tipo
-      if (form.activity_type === 'practice_group') {
-        if (!form.group_participants.length) {
-          error.value = 'Selecciona al menos un atleta para la práctica grupal';
+        // Validaciones generales
+        if (!form.applicant_id) {
+          error.value = 'Debes buscar y seleccionar un solicitante';
           return;
         }
-      }
-      // Validación para partidos (friendly, official, championship)
-      const isMatch = ["match_friendly", "match_official", "match_championship"].includes(form.activity_type);
-      if (isMatch) {
-        if (!form.team1_id || !form.team2_id) {
-          error.value = 'Selecciona ambos equipos para el partido';
+        if (!form.field_id) {
+          error.value = 'Debes seleccionar un campo';
           return;
         }
-        if (form.team1_id === form.team2_id) {
-          error.value = 'Los equipos deben ser diferentes';
-          return;
+        // Validaciones según tipo
+        if (form.activity_type === 'practice_group') {
+          if (!form.group_participants.length) {
+            error.value = 'Selecciona al menos un atleta para la práctica grupal';
+            return;
+          }
         }
-          // Para partido oficial no se seleccionan jugadores manualmente
+        const isMatch = ["match_friendly", "match_official", "match_championship"].includes(form.activity_type);
+        if (isMatch) {
+          if (!form.team1_id || !form.team2_id) {
+            error.value = 'Selecciona ambos equipos para el partido';
+            return;
+          }
+          if (form.team1_id === form.team2_id) {
+            error.value = 'Los equipos deben ser diferentes';
+            return;
+          }
           if (form.activity_type !== 'match_official') {
             if (!selectedTeam1Members.value.length || !selectedTeam2Members.value.length) {
-              error.value = 'Selecciona los jugadores convocados de ambos equipos';
-              return;
+              // Solo aplica para friendly (o cuando el form requiere miembros)
+              if (form.activity_type === 'match_friendly') {
+                error.value = 'Selecciona los jugadores convocados de ambos equipos';
+                return;
+              }
             }
           }
-      }
-      if (form.activity_type === 'match_championship' && !form.championship_id) {
-        error.value = 'Selecciona el campeonato';
-        return;
-      }
+        }
+        if (form.activity_type === 'match_championship' && !form.championship_id) {
+          error.value = 'Selecciona el campeonato';
+          return;
+        }
 
-      error.value = null;
-      submitting.value = true;
+        error.value = null;
+        submitting.value = true;
 
-      try {
-        // Construir payload según tipo
-        // --> Mapeo: enviar 'match_championship' cuando el usuario escogió 'match_official'
-        // helper: formatea una fecha local (input datetime-local) a 'YYYY-MM-DD HH:MM:SS'
-        const formatDateTime = (dtStr) => {
-          try {
-            const d = new Date(dtStr);
-            if (isNaN(d.getTime())) {
-              // Fallback: try manual replace
-              const s = String(dtStr).replace('T', ' ');
-              return s.includes(':') && s.split(':').length === 2 ? s + ':00' : s;
+        try {
+          const formatDateTime = (dtStr) => {
+            try {
+              const d = new Date(dtStr);
+              if (isNaN(d.getTime())) {
+                const s = String(dtStr).replace('T', ' ');
+                return s.includes(':') && s.split(':').length === 2 ? s + ':00' : s;
+              }
+              const pad = (n) => String(n).padStart(2, '0');
+              return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+            } catch (e) {
+              return String(dtStr).replace('T', ' ') + ':00';
             }
-            const pad = (n) => String(n).padStart(2, '0');
-            return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
-          } catch (e) {
-            return String(dtStr).replace('T', ' ') + ':00';
-          }
-        };
+          };
 
-        const payloadActivityType = form.activity_type; // enviar lo que seleccionó el usuario (incluye match_official)
+          // Payload base para crear reserva (utilizado por createReservation)
+          const basePayload = {
+            field_id: Number(form.field_id),
+            applicant_id: Number(form.applicant_id),
+            activity_type: form.activity_type,
+            start_datetime: formatDateTime(form.start_datetime),
+            end_datetime: formatDateTime(form.end_datetime),
+            notes: form.notes || null,
+          };
 
-        const payload = {
-          field_id: Number(form.field_id),
-          applicant_id: Number(form.applicant_id),
-          activity_type: payloadActivityType,
-          start_datetime: formatDateTime(form.start_datetime),
-          end_datetime: formatDateTime(form.end_datetime),
-          notes: form.notes || null,
-        };
-        if (form.activity_type === 'practice_group') {
-          payload.participants = form.group_participants.map(id => ({
-            participant_id: Number(id),
-            participant_type: 'individual'
-          }));
-        }
-        if (form.activity_type === 'match_friendly' || form.activity_type === 'match_official' || form.activity_type === 'match_championship') {
-          payload.team1_id = Number(form.team1_id);
-          payload.team2_id = Number(form.team2_id);
-          // Para friendly sí enviamos jugadores seleccionados de ambos equipos
-          if (form.activity_type === 'match_friendly') {
-            payload.participants_team1 = selectedTeam1Members.value.map(id => ({ participant_id: Number(id), participant_type: 'team_member' }));
-            payload.participants_team2 = selectedTeam2Members.value.map(id => ({ participant_id: Number(id), participant_type: 'team_member' }));
+          if (form.activity_type === 'practice_group') {
+            basePayload.participants = form.group_participants.map(id => ({
+              participant_id: Number(id),
+              participant_type: 'individual'
+            }));
           }
-          // Para official / championship el backend puede esperar distinto; aquí solo enviamos teams y championship_id si aplica
-          if (form.activity_type === 'match_championship' && form.championship_id) {
-            payload.championship_id = Number(form.championship_id);
-          }
-        }
-    // Limpiar selección de miembros si se cambia el equipo
-    const onTeamMemberChange = (team) => {
-      // Si se cambia el equipo, limpiar los seleccionados
-      if (team === 1 && !form.team1_id) selectedTeam1Members.value = [];
-      if (team === 2 && !form.team2_id) selectedTeam2Members.value = [];
-    };
 
-        console.log('📤 Enviando reserva:', payload);
-        const response = await createReservation(payload);
-        if (response.data && response.data.ok === true) {
-          closeModal();
-          // Reset form y miembros
-          Object.assign(form, {
-            field_id: '',
-            applicant_id: null,
-            activity_type: 'practice_individual',
-            start_datetime: '',
-            end_datetime: '',
-            notes: '',
-            group_participants: [],
-            team1_id: '',
-            team2_id: '',
-            championship_id: '',
-            championship_team_id: '',
-          });
-          team1Members.value = [];
-          team2Members.value = [];
-          selectedTeam1Members.value = [];
-          selectedTeam2Members.value = [];
-          error.value = null;
-          setTimeout(() => {
-            emit('reservation-saved');
-          }, 300);
-        } else {
-          const msg = response.data?.message || 'Error desconocido al crear reserva';
-          error.value = msg;
-          console.error('❌ ok=false o ausente:', msg);
+          // si NO es match_championship -> crear reserva normal en el broker
+          if (form.activity_type !== 'match_championship') {
+            // Asegurarnos de incluir info de equipos/participantes cuando aplique
+            if (form.activity_type === 'match_friendly' || form.activity_type === 'match_official') {
+              basePayload.team1_id = Number(form.team1_id);
+              basePayload.team2_id = Number(form.team2_id);
+              if (form.activity_type === 'match_friendly') {
+                basePayload.participants_team1 = selectedTeam1Members.value.map(id => ({ participant_id: Number(id), participant_type: 'team_member' }));
+                basePayload.participants_team2 = selectedTeam2Members.value.map(id => ({ participant_id: Number(id), participant_type: 'team_member' }));
+              }
+            }
+
+            // practice_group ya tiene basePayload.participants si aplica (lo construimos arriba)
+            console.log('📤 Enviando reserva (no-championship):', basePayload);
+            const response = await createReservation(basePayload);
+            if (response.data && response.data.ok === true) {
+              closeModal();
+              Object.assign(form, {
+                field_id: '',
+                applicant_id: null,
+                activity_type: 'practice_individual',
+                start_datetime: '',
+                end_datetime: '',
+                notes: '',
+                group_participants: [],
+                team1_id: '',
+                team2_id: '',
+                championship_id: '',
+                championship_team_id: '',
+              });
+              team1Members.value = [];
+              team2Members.value = [];
+              selectedTeam1Members.value = [];
+              selectedTeam2Members.value = [];
+              error.value = null;
+              setTimeout(() => { emit('reservation-saved'); }, 300);
+            } else {
+              const msg = response.data?.message || 'Error desconocido al crear reserva';
+              error.value = msg;
+              console.error('❌ ok=false o ausente:', msg);
+            }
+
+          // caso championship -> orquestador que crea reserva + match atómico
+          } else {
+            const start = formatDateTime(form.start_datetime);
+            const dtStart = new Date(form.start_datetime);
+            const dtEnd = new Date(form.end_datetime);
+            let durationHours = Math.round(Math.abs((dtEnd - dtStart) / (3600 * 1000)));
+            if (!durationHours || durationHours <= 0) durationHours = 1;
+
+            const matchPayload = {
+              field_id: Number(form.field_id),
+              team1_id: Number(form.team1_id),
+              team2_id: Number(form.team2_id),
+              start_datetime: start,
+              duration: durationHours,
+              notes: form.notes || `Match for championship ${form.championship_id || ''}`
+            };
+
+            console.log('📤 Enviando CHAMPIONSHIP match payload al broker:', matchPayload);
+            const res = await createChampionshipMatch(Number(form.championship_id), matchPayload);
+
+            if (res.data && res.data.ok) {
+              closeModal();
+              Object.assign(form, {
+                field_id: '',
+                applicant_id: null,
+                activity_type: 'practice_individual',
+                start_datetime: '',
+                end_datetime: '',
+                notes: '',
+                group_participants: [],
+                team1_id: '',
+                team2_id: '',
+                championship_id: '',
+                championship_team_id: '',
+              });
+              team1Members.value = [];
+              team2Members.value = [];
+              selectedTeam1Members.value = [];
+              selectedTeam2Members.value = [];
+              error.value = null;
+              setTimeout(() => { emit('reservation-saved'); }, 300);
+            } else {
+              const msg = res.data?.detail || res.data?.message || 'Error creando match de campeonato';
+              error.value = msg;
+              console.error('❌ Error desde broker:', res.data || res);
+            }
+          }
+        } catch (err) {
+          console.error('❌ Error creando reserva/match:', err);
+          const detail = err.response?.data?.detail;
+          const message = err.response?.data?.message;
+          const errors = err.response?.data?.errors;
+          if (detail) {
+            // detail puede ser objeto con ok:false
+            error.value = typeof detail === 'string' ? detail : JSON.stringify(detail);
+          } else if (message) {
+            error.value = message;
+          } else if (errors && errors.length > 0) {
+            error.value = errors.join(', ');
+          } else {
+            error.value = err.message || 'Error al guardar reserva';
+          }
+        } finally {
+          submitting.value = false;
         }
-      } catch (err) {
-        console.error('❌ Error creando reserva:', err);
-        const detail = err.response?.data?.detail;
-        const message = err.response?.data?.message;
-        const errors = err.response?.data?.errors;
-        if (detail) {
-          error.value = detail;
-        } else if (message) {
-          error.value = message;
-        } else if (errors && errors.length > 0) {
-          error.value = errors.join(', ');
-        } else {
-          error.value = 'Error al guardar reserva';
-        }
-      } finally {
-        submitting.value = false;
-      }
-    };
+      };
+
 
     onMounted(() => {
       loadFields();

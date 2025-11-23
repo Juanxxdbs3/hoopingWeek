@@ -470,39 +470,31 @@ export default {
         if (!matchForm.field_id) {
           throw new Error('Selecciona un campo para el match');
         }
-        // 1) crear reserva para el match (actividad tipo match_championship)
+        if (!matchForm.team1_id || !matchForm.team2_id) {
+          throw new Error('Selecciona ambos equipos');
+        }
+
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         const startDt = matchForm.start_datetime; // "YYYY-MM-DDTHH:MM"
         const start = new Date(startDt);
         const end = new Date(start.getTime() + (matchForm.duration || 1) * 3600 * 1000);
-        const formatDateTime = (d) => {
-          const pad = n => String(n).padStart(2, '0');
-          return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
-        };
-        const reservationPayload = {
+        const pad = n => String(n).padStart(2, '0');
+        const formatDateTime = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+
+        // Armamos payload simple para el broker (el broker crea la reserva + match)
+        const payload = {
           field_id: Number(matchForm.field_id),
-          applicant_id: Number(user.id || 0),
-          activity_type: 'match_championship',
+          team1_id: Number(matchForm.team1_id),
+          team2_id: Number(matchForm.team2_id),
           start_datetime: formatDateTime(start),
-          end_datetime: formatDateTime(end),
+          duration: matchForm.duration || 1,
           notes: `Match for championship ${selectedChamp.value?.id || ''}`
         };
-        const resReserv = await createReservation(reservationPayload);
-        const reservationId = resReserv.data?.reservation?.id || resReserv.data?.id || null;
-        if (!reservationId) {
-          throw new Error('No se pudo crear la reserva para el match');
-        }
 
-        // 2) crear match asociado al championship usando reservation_id
-        const payload = {
-          championship_id: selectedChamp.value.id,
-          team1_id: matchForm.team1_id,
-          team2_id: matchForm.team2_id,
-          start_datetime: formatDateTime(start),
-          duration: matchForm.duration,
-          reservation_id: reservationId
-        };
-        const res = await createChampionshipMatch(payload);
+        // Llamada única: orquestada por broker
+        const res = await createChampionshipMatch(selectedChamp.value.id, payload);
+
+        // res.data: { ok: true, reservation: {...}, match: {...} }
         if (res.data && res.data.ok) {
           showAddMatchModal.value = false;
           matchForm.team1_id = matchForm.team2_id = matchForm.start_datetime = '';
@@ -510,7 +502,7 @@ export default {
           matchForm.field_id = '';
           await loadChampionshipMatches(selectedChamp.value.id);
         } else {
-          matchError.value = res.data?.message || 'Error al crear match';
+          throw new Error(res.data?.message || 'Error creando match');
         }
       } catch (e) {
         matchError.value = e.response?.data?.detail || e.message || 'Error al crear match';
@@ -518,6 +510,7 @@ export default {
         matchSubmitting.value = false;
       }
     };
+
 
     // Approve / Reject reservations
     const approve = async (id) => {

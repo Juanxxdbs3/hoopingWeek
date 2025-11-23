@@ -108,6 +108,6 @@ export const removeTeamFromChampionship = (id, teamId) => api.delete(`/api/champ
 export const getChampionshipMatches = (championship_id) => api.get('/api/matches', { params: { championship_id } });
 
 // Crear un partido de campeonato
-export const createChampionshipMatch = (data) => api.post('/api/matches', data);
+export const createChampionshipMatch = (championshipId, data) => api.post(`/api/championships/${championshipId}/matches`, data);
 
 export default api;
