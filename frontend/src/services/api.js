@@ -1,9 +1,8 @@
-// src/services/api.js
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_BROKER_URL || 'http://localhost:5000', // ✅ Puerto 5000
-  timeout: 10000,
+  baseURL: import.meta.env.VITE_BROKER_URL || 'http://localhost:5000', // ✅ Puerto 5000 (Broker)
+  timeout: 20000,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -76,7 +75,7 @@ export const getTeamMembers = (teamId) => api.get(`/api/teams/${teamId}/members`
 export const addTeamMember = (teamId, athleteId) => api.post(`/api/teams/${teamId}/members`, { athlete_id: athleteId });
 export const removeTeamMember = (teamId, athleteId) => api.delete(`/api/teams/${teamId}/members/${athleteId}`);
 
-// CHAMPIONSHIPS
+// CHAMPIONSHIPS (General)
 export const getChampionships = () => api.get('/api/championships');
 export const getChampionshipById = (id) => api.get(`/api/championships/${id}`);
 export const createChampionship = (data) => api.post('/api/championships', data);
@@ -89,5 +88,26 @@ export const getManagerShiftById = (id) => api.get(`/api/manager-shifts/${id}`);
 export const createManagerShift = (data) => api.post('/api/manager-shifts', data);
 export const updateManagerShift = (id, data) => api.put(`/api/manager-shifts/${id}`, data);
 export const deleteManagerShift = (id) => api.delete(`/api/manager-shifts/${id}`);
+
+// ============================================================
+// ✅ NUEVAS FUNCIONES AGREGADAS (CORRECCIÓN DEL ERROR)
+// ============================================================
+
+// CHAMPIONSHIP TEAMS & MATCHES
+// Obtener equipos inscritos en un campeonato
+export const getChampionshipTeams = (id) => api.get(`/api/championships/${id}/teams`);
+
+// Agregar un equipo a un campeonato
+export const addTeamToChampionship = (id, teamId) => api.post(`/api/championships/${id}/teams`, { team_id: teamId });
+
+// Eliminar un equipo de un campeonato
+export const removeTeamFromChampionship = (id, teamId) => api.delete(`/api/championships/${id}/teams/${teamId}`);
+
+// Obtener partidos de un campeonato (Asume filtro por backend o endpoint específico)
+// NOTA: Si el endpoint '/api/matches' no filtra por championship_id aún, traerá todos.
+export const getChampionshipMatches = (championship_id) => api.get('/api/matches', { params: { championship_id } });
+
+// Crear un partido de campeonato
+export const createChampionshipMatch = (data) => api.post('/api/matches', data);
 
 export default api;

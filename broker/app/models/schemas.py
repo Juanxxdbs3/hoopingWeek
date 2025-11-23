@@ -12,10 +12,10 @@ class ReservationParticipant(BaseModel):
 class ReservationCreateRequest(BaseModel):
     field_id: int
     applicant_id: int
-    activity_type: str = Field(..., pattern="^(practice_individual|practice_group|match_friendly|match_championship)$")
+    activity_type: str = Field(..., pattern="^(practice_individual|practice_group|match_friendly|match_championship|match_official)$")
     start_datetime: datetime
     end_datetime: datetime
-    participants: List[ReservationParticipant] = []
+    participants: List[ReservationParticipant] = Field(default_factory=list)
     notes: Optional[str] = None
 
 class ValidationResult(BaseModel):
@@ -201,7 +201,7 @@ class ChampionshipCreate(BaseModel):
     sport: str = Field(..., min_length=2, max_length=100)
     start_date: date
     end_date: date
-    status: Optional[str] = Field("planning", pattern="^(planning|active|finished|cancelled)$")
+    status: Optional[str] = Field("planning", pattern="^(pending|planning|active|finished|cancelled)$")
 
     @model_validator(mode='after')
     def validate_dates(self):
@@ -215,7 +215,7 @@ class ChampionshipUpdate(BaseModel):
     sport: Optional[str] = Field(None, min_length=2, max_length=100)
     start_date: Optional[date] = None
     end_date: Optional[date] = None
-    status: Optional[str] = Field(None, pattern="^(planning|active|finished|cancelled)$")
+    status: Optional[str] = Field(None, pattern="^(pending|planning|active|finished|cancelled)$")
 
     @model_validator(mode='after')
     def validate_dates(self):

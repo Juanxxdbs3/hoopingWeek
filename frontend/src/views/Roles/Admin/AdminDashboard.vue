@@ -1,5 +1,8 @@
 <template>
   <div class="admin-layout">
+    <AppBreadcrumb :crumbs="[
+      { label: 'Dashboard', to: '/admin', icon: 'bi bi-house', active: true }
+    ]" />
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="profile-section">
@@ -8,34 +11,26 @@
         <p class="user-email">{{ userEmail }}</p>
         <span class="badge-role">super_admin</span>
       </div>
-
       <button class="btn-logout" @click="logout">Cerrar Sesión</button>
-
-      <!-- MENÚ DE NAVEGACIÓN -->
       <nav class="sidebar-nav">
         <router-link to="/admin/dashboard" class="nav-item" active-class="active">
           <i class="bi bi-speedometer2"></i>
           Dashboard
         </router-link>
-        
         <router-link to="/admin/reservations" class="nav-item" active-class="active">
           <i class="bi bi-calendar-check"></i>
           Reservas
         </router-link>
-
         <router-link to="/admin/users" class="nav-item" active-class="active">
           <i class="bi bi-people"></i>
           Usuarios
         </router-link>
-
         <router-link to="/admin/manager-shifts" class="nav-item" active-class="active">
           <i class="bi bi-clock-history"></i>
           Turnos Managers
         </router-link>
       </nav>
     </aside>
-
-    <!-- Main Content -->
     <main class="main-content">
       <header class="dashboard-header">
         <div>
@@ -47,8 +42,7 @@
           <strong>{{ currentDate }}</strong>
         </div>
       </header>
-
-      <!-- Tarjetas de estadísticas -->
+      <!-- Tarjetas de estadísticas reales -->
       <div class="stats-grid">
         <div class="stat-card stat-primary">
           <div class="stat-icon">
@@ -59,7 +53,6 @@
             <p>Reservas Totales</p>
           </div>
         </div>
-
         <div class="stat-card stat-warning">
           <div class="stat-icon">
             <i class="bi bi-clock-fill"></i>
@@ -69,7 +62,6 @@
             <p>Pendientes</p>
           </div>
         </div>
-
         <div class="stat-card stat-success">
           <div class="stat-icon">
             <i class="bi bi-check-circle-fill"></i>
@@ -79,7 +71,6 @@
             <p>Aprobadas</p>
           </div>
         </div>
-
         <div class="stat-card stat-danger">
           <div class="stat-icon">
             <i class="bi bi-x-circle-fill"></i>
@@ -91,75 +82,21 @@
         </div>
       </div>
 
-      <!-- Tabla de reservas -->
-      <div class="card mt-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h5 class="mb-0">Listado de Reservas</h5>
-          <div>
-            <button class="btn btn-primary me-2" @click="loadReservations">
-              <i class="bi bi-arrow-clockwise"></i> Actualizar
-            </button>
-            <router-link to="/admin/reservations" class="btn btn-success">
-              <i class="bi bi-plus-circle"></i> Nueva Reserva
-            </router-link>
+      <!-- Paneles adicionales -->
+      <div class="row" style="gap: 1.5rem 0;">
+        <div class="col-12 col-md-6 mb-4">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title mb-3">Campo más usado esta semana</h5>
+              <div class="text-muted">(Próximamente)</div>
+            </div>
           </div>
         </div>
-        <div class="card-body p-0">
-          <div v-if="loading" class="text-center p-4">
-            <div class="spinner-border text-primary"></div>
-          </div>
-          <div v-else-if="reservations.length === 0" class="text-center p-4 text-muted">
-            No hay reservas registradas
-          </div>
-          <div v-else class="table-responsive">
-            <table class="table table-hover mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th>ID</th>
-                  <th>Solicitante</th>
-                  <th>Campo</th>
-                  <th>Fecha Inicio</th>
-                  <th>Tipo</th>
-                  <th>Estado</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="res in reservations" :key="res.id">
-                  <td><strong>#{{ res.id }}</strong></td>
-                  <td>{{ res.applicant_id }}</td>
-                  <td>Campo {{ res.field_id }}</td>
-                  <td>{{ formatDate(res.start_datetime) }}</td>
-                  <td>
-                    <span class="badge" :class="typeBadge(res.activity_type)">
-                      {{ formatType(res.activity_type) }}
-                    </span>
-                  </td>
-                  <td>
-                    <span class="badge" :class="statusBadge(res.status)">
-                      {{ res.status }}
-                    </span>
-                  </td>
-                  <td>
-                    <button 
-                      v-if="res.status === 'pending'" 
-                      class="btn btn-sm btn-success me-1"
-                      @click="approve(res.id)"
-                    >
-                      <i class="bi bi-check"></i>
-                    </button>
-                    <button 
-                      v-if="res.status === 'pending'" 
-                      class="btn btn-sm btn-danger"
-                      @click="reject(res.id)"
-                    >
-                      <i class="bi bi-x"></i>
-                    </button>
-                    <span v-else>-</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+        <div class="col-12 col-md-6 mb-4">
+          <div class="card h-100">
+            <div class="card-body d-flex align-items-center justify-content-center text-muted">
+              (Panel vacío)
+            </div>
           </div>
         </div>
       </div>
@@ -168,12 +105,15 @@
 </template>
 
 <script>
+
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getReservations, approveReservation, rejectReservation } from '@/services/api';
+import AppBreadcrumb from '@/components/AppBreadcrumb.vue';
 
 export default {
   name: 'AdminDashboard',
+  components: { AppBreadcrumb },
   setup() {
     const router = useRouter();
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -420,7 +360,30 @@ export default {
 .main-content {
   margin-left: 280px;
   flex: 1;
-  padding: 2rem;
+  padding: 2rem 0 2rem 0;
+  min-width: 0;
+}
+.dashboard-header {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 2rem;
+  gap: 2rem;
+}
+.dashboard-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0;
+  text-align: left;
+}
+.dashboard-subtitle {
+  color: #6c757d;
+  margin: 0.25rem 0 0;
+  text-align: left;
+}
+.header-date {
+  text-align: right;
+  margin-left: auto;
 }
 
 .dashboard-header {
@@ -464,7 +427,7 @@ export default {
   padding: 1.5rem;
   display: flex;
   gap: 1rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .stat-icon {
@@ -512,7 +475,7 @@ export default {
 .card {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   overflow: hidden;
 }
 

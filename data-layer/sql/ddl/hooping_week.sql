@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 13-11-2025 a las 18:15:22
+-- Tiempo de generación: 22-11-2025 a las 05:56:47
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -43,7 +43,8 @@ CREATE TABLE `championships` (
 --
 
 INSERT INTO `championships` (`id`, `name`, `organizer_id`, `sport`, `start_date`, `end_date`, `status`, `created_at`) VALUES
-(1, 'Torneo Navideño 2025 - Edición Especial', 17, 'basketball', '2025-12-16', '2025-12-23', 'finished', '2025-11-13 00:26:13');
+(1, 'Torneo Navideño 2025 - Edición Especial', 17, 'basketball', '2025-12-16', '2025-12-23', 'finished', '2025-11-13 00:26:13'),
+(3, 'Torneo Navideño 2025', 12, 'futbol', '2025-12-16', '2025-12-22', 'planning', '2025-11-21 14:04:42');
 
 --
 -- Disparadores `championships`
@@ -78,6 +79,14 @@ CREATE TABLE `championship_teams` (
   `championship_id` int(11) NOT NULL,
   `team_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `championship_teams`
+--
+
+INSERT INTO `championship_teams` (`championship_id`, `team_id`) VALUES
+(1, 1),
+(3, 1);
 
 -- --------------------------------------------------------
 
@@ -160,7 +169,7 @@ CREATE TABLE `field_schedule_exceptions` (
 
 INSERT INTO `field_schedule_exceptions` (`id`, `field_id`, `specific_date`, `reason`, `overrides_regular`, `special_start_time`, `special_end_time`) VALUES
 (1, 5, '2025-12-25', 'Mantenimiento programado', 1, NULL, NULL),
-(2, 5, '2025-01-01', 'Año Nuevo - Horario reducido', 1, '12:00:00', '20:00:00');
+(2, 5, '2026-01-01', 'Año Nuevo - Horario reducido', 1, '12:00:00', '20:00:00');
 
 -- --------------------------------------------------------
 
@@ -221,7 +230,8 @@ CREATE TABLE `manager_shifts` (
 
 INSERT INTO `manager_shifts` (`id`, `manager_id`, `field_id`, `day_of_week`, `start_time`, `end_time`, `active`, `note`) VALUES
 (2, 16, 6, 1, '16:00:00', '20:00:00', 1, 'Turno tarde lunes'),
-(3, 16, 4, 1, '08:00:00', '16:00:00', 1, 'Turno matutino lunes');
+(3, 16, 4, 1, '08:00:00', '16:00:00', 1, 'Turno matutino lunes'),
+(5, 16, 5, 3, '14:00:00', '18:00:00', 1, 'Turno miércoles tarde');
 
 --
 -- Disparadores `manager_shifts`
@@ -267,7 +277,29 @@ CREATE TABLE `matches` (
 
 INSERT INTO `matches` (`id`, `reservation_id`, `team1_id`, `team2_id`, `is_friendly`, `championship_id`) VALUES
 (2, 2, 1, 2, 1, NULL),
-(3, 1, 1, 3, 0, NULL);
+(3, 1, 1, 3, 0, NULL),
+(4, 29, 1, 2, 0, 3);
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `phinxlog`
+--
+
+CREATE TABLE `phinxlog` (
+  `version` bigint(20) NOT NULL,
+  `migration_name` varchar(100) DEFAULT NULL,
+  `start_time` timestamp NULL DEFAULT NULL,
+  `end_time` timestamp NULL DEFAULT NULL,
+  `breakpoint` tinyint(1) NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `phinxlog`
+--
+
+INSERT INTO `phinxlog` (`version`, `migration_name`, `start_time`, `end_time`, `breakpoint`) VALUES
+(20251113220000, 'InitialSchema', '2025-11-14 06:39:38', '2025-11-14 06:39:38', 0);
 
 -- --------------------------------------------------------
 
@@ -286,8 +318,13 @@ CREATE TABLE `reservations` (
   `status` varchar(50) NOT NULL DEFAULT 'pending',
   `priority` int(11) NOT NULL,
   `approved_by` int(11) DEFAULT NULL,
+  `approved_at` datetime DEFAULT NULL,
   `request_date` datetime NOT NULL DEFAULT current_timestamp(),
   `rejection_reason` text DEFAULT NULL,
+  `rejected_at` datetime DEFAULT NULL,
+  `cancelled_at` datetime DEFAULT NULL,
+  `cancelled_by` int(11) DEFAULT NULL,
+  `cancellation_reason` varchar(500) DEFAULT NULL,
   `notes` text DEFAULT NULL,
   `soft_deleted` tinyint(1) NOT NULL DEFAULT 0
 ) ;
@@ -296,9 +333,39 @@ CREATE TABLE `reservations` (
 -- Volcado de datos para la tabla `reservations`
 --
 
-INSERT INTO `reservations` (`id`, `field_id`, `applicant_id`, `activity_type`, `start_datetime`, `end_datetime`, `duration_hours`, `status`, `priority`, `approved_by`, `request_date`, `rejection_reason`, `notes`, `soft_deleted`) VALUES
-(1, 5, 15, 'friendly_match', '2025-11-19 14:00:00', '2025-11-19 16:00:00', 2.00, 'approved', 5, 16, '2025-11-12 22:24:15', NULL, 'cuiden la canchita', 0),
-(2, 5, 10, 'practice_group', '2025-11-20 15:00:00', '2025-11-20 17:00:00', 2.00, 'approved', 5, 14, '2025-11-12 22:44:19', NULL, NULL, 0);
+INSERT INTO `reservations` (`id`, `field_id`, `applicant_id`, `activity_type`, `start_datetime`, `end_datetime`, `duration_hours`, `status`, `priority`, `approved_by`, `approved_at`, `request_date`, `rejection_reason`, `rejected_at`, `cancelled_at`, `cancelled_by`, `cancellation_reason`, `notes`, `soft_deleted`) VALUES
+(1, 5, 15, 'friendly_match', '2025-11-19 14:00:00', '2025-11-19 16:00:00', 2.00, 'approved', 5, 16, NULL, '2025-11-12 22:24:15', NULL, NULL, NULL, NULL, NULL, 'cuiden la canchita', 0),
+(2, 5, 10, 'practice_group', '2025-11-20 15:00:00', '2025-11-20 17:00:00', 2.00, 'approved', 5, 14, NULL, '2025-11-12 22:44:19', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(6, 3, 15, 'practice_individual', '2025-11-20 14:00:00', '2025-11-20 16:00:00', 2.00, 'cancelled', 4, 17, '2025-11-17 14:50:42', '2025-11-14 01:44:19', NULL, NULL, '2025-11-17 15:06:02', 15, 'No puedo asistir por motivos personales', NULL, 0),
+(7, 3, 15, 'practice_individual', '2025-11-25 14:00:00', '2025-11-25 16:00:00', 2.00, 'approved', 4, 17, '2025-11-18 10:00:00', '2025-11-14 07:27:00', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(8, 3, 22, 'practice_group', '2025-11-28 15:00:00', '2025-11-28 17:00:00', 2.00, 'approved', 2, 17, '2025-11-17 15:04:37', '2025-11-14 07:39:56', NULL, NULL, NULL, NULL, NULL, ' [Desplazada por campeonato ID 30]', 0),
+(9, 3, 24342754, 'practice_individual', '2025-11-25 14:16:00', '2025-11-25 16:17:00', 2.02, 'approved', 3, 1, '2025-11-20 04:56:19', '2025-11-14 09:40:48', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(10, 3, 32876609, 'practice_individual', '2025-11-25 14:16:00', '2025-11-25 16:17:00', 2.02, 'approved', 3, 17, '2025-11-20 13:38:24', '2025-11-14 09:42:34', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(11, 3, 32876609, 'practice_individual', '2025-11-25 14:16:00', '2025-11-25 16:17:00', 2.02, 'approved', 3, 17, '2025-11-20 16:53:35', '2025-11-14 09:44:19', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(12, 5, 10, 'practice_individual', '2025-11-25 13:00:00', '2025-11-25 15:00:00', 2.00, 'approved', 4, NULL, NULL, '2025-11-14 21:02:15', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(13, 5, 15, 'practice_individual', '2025-11-25 14:00:00', '2025-11-25 16:00:00', 2.00, 'approved', 4, NULL, NULL, '2025-11-14 21:04:59', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(14, 5, 10, 'practice_group', '2025-11-26 09:00:00', '2025-11-26 11:00:00', 2.00, 'approved', 3, NULL, NULL, '2025-11-14 21:05:54', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(15, 5, 32876609, 'practice_individual', '2025-11-27 09:00:00', '2025-11-27 11:00:00', 2.00, 'approved', 3, NULL, NULL, '2025-11-14 21:07:25', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(16, 5, 12, 'practice_individual', '2025-11-28 09:00:00', '2025-11-28 11:00:00', 2.00, 'approved', 3, NULL, NULL, '2025-11-14 21:08:35', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(17, 5, 10, 'practice_individual', '2025-11-25 17:00:00', '2025-11-25 19:00:00', 2.00, 'approved', 4, NULL, NULL, '2025-11-14 22:00:45', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(18, 5, 15, 'practice_individual', '2025-11-25 17:00:00', '2025-11-25 19:00:00', 2.00, 'approved', 4, NULL, NULL, '2025-11-14 22:01:44', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(19, 5, 10, 'practice_individual', '2025-11-29 14:00:00', '2025-11-29 16:00:00', 2.00, 'approved', 4, NULL, NULL, '2025-11-14 22:14:50', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(20, 5, 10, 'practice_individual', '2025-11-29 14:00:00', '2025-11-29 16:00:00', 2.00, 'approved', 4, NULL, NULL, '2025-11-14 22:15:11', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(21, 5, 10, 'practice_individual', '2025-11-30 13:00:00', '2025-11-30 15:00:00', 2.00, 'approved', 4, NULL, NULL, '2025-11-14 22:20:49', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(22, 5, 10, 'match_friendly', '2025-12-04 14:00:00', '2025-12-04 16:00:00', 2.00, 'rejected', 2, 17, NULL, '2025-11-14 22:30:16', 'Campo en mantenimiento ese día', NULL, NULL, NULL, NULL, NULL, 0),
+(23, 3, 10, 'match_friendly', '2025-12-05 14:00:00', '2025-12-05 16:00:00', 2.00, 'approved', 2, 17, NULL, '2025-11-17 16:28:14', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(24, 5, 21, 'match_friendly', '2025-12-08 14:00:00', '2025-12-08 16:00:00', 2.00, 'approved', 2, 17, '2025-11-17 15:30:12', '2025-11-17 20:29:08', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(25, 5, 15, 'practice_individual', '2025-11-20 07:00:00', '2025-11-20 09:00:00', 2.00, 'approved', 4, NULL, NULL, '2025-11-19 15:07:25', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(26, 5, 15, 'practice_individual', '2025-11-20 09:00:00', '2025-11-20 11:00:00', 2.00, 'cancelled', 4, NULL, NULL, '2025-11-20 10:22:40', NULL, NULL, '2025-11-20 05:24:58', 1, 'me apetecia jaja', NULL, 0),
+(27, 5, 1008888888, 'practice_individual', '2025-11-21 15:30:00', '2025-11-21 17:30:00', 2.00, 'cancelled', 4, NULL, NULL, '2025-11-20 17:01:18', NULL, NULL, '2025-11-20 12:06:57', 16, 'I am trying to prove the endpoint', NULL, 0),
+(28, 5, 12, 'match_championship', '2025-12-16 13:00:00', '2025-12-16 15:00:00', 2.00, 'pending', 1, NULL, NULL, '2025-11-21 19:22:41', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(29, 5, 12, 'match_championship', '2025-12-11 13:00:00', '2025-12-13 15:00:00', 50.00, 'pending', 1, NULL, NULL, '2025-11-21 20:04:12', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(30, 3, 12, 'match_championship', '2025-11-26 07:00:00', '2025-11-28 15:00:00', 56.00, 'approved', 1, 17, '2025-11-21 16:58:11', '2025-11-21 21:47:20', NULL, NULL, NULL, NULL, NULL, 'Probando solapamientode reservas', 0),
+(31, 5, 2147483647, 'practice_individual', '2025-11-22 09:00:00', '2025-11-22 10:00:00', 1.00, 'approved', 4, NULL, NULL, '2025-11-22 02:51:30', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(32, 3, 2147483647, 'practice_individual', '2025-11-29 09:00:00', '2025-11-29 10:00:00', 1.00, 'approved', 4, NULL, NULL, '2025-11-22 03:08:31', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(33, 3, 15, 'practice_individual', '2025-12-16 13:00:00', '2025-12-16 14:00:00', 1.00, 'approved', 4, NULL, NULL, '2025-11-22 03:49:30', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(34, 5, 15, 'practice_individual', '2025-12-20 14:00:00', '2025-12-20 15:00:00', 1.00, 'approved', 4, NULL, NULL, '2025-11-22 04:20:00', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+(35, 5, 18, 'practice_individual', '2025-12-17 08:00:00', '2025-12-17 09:00:00', 1.00, 'approved', 4, NULL, NULL, '2025-11-22 04:25:48', NULL, NULL, NULL, NULL, NULL, NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -313,6 +380,14 @@ CREATE TABLE `reservation_participants` (
   `participant_type` varchar(50) NOT NULL,
   `team_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `reservation_participants`
+--
+
+INSERT INTO `reservation_participants` (`id`, `reservation_id`, `participant_id`, `participant_type`, `team_id`) VALUES
+(2, 6, 15, 'individual', NULL),
+(3, 7, 15, 'individual', NULL);
 
 -- --------------------------------------------------------
 
@@ -357,9 +432,11 @@ CREATE TABLE `teams` (
 --
 
 INSERT INTO `teams` (`id`, `name`, `sport`, `type`, `trainer_id`, `locality`, `created_at`) VALUES
-(1, 'Club Atlético Miramar', 'tenis', 'club', 13, 'Cartagena', '2025-11-12 12:44:16'),
+(1, 'Los Halcones FC', 'tenis', 'club', 13, 'Barranquilla', '2025-11-12 12:44:16'),
 (2, 'Junior de Barranquilla', 'futbol', 'seleccion', 12, 'Barranquilla', '2025-11-12 12:46:14'),
-(3, 'Real Cartagena', 'basketball', 'informal', 14, 'Cartagena', '2025-11-12 13:01:29');
+(3, 'Real Cartagena', 'basketball', 'informal', 14, 'Cartagena', '2025-11-12 13:01:29'),
+(5, 'Los Tigres', 'futbol', 'club', 12, 'Cartagena', '2025-11-21 13:54:45'),
+(6, 'Los Leonsitos', 'futbol', 'club', 12, 'Cartagena', '2025-11-21 13:59:18');
 
 --
 -- Disparadores `teams`
@@ -444,13 +521,29 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `email`, `first_name`, `last_name`, `phone`, `password_hash`, `role_id`, `state_id`, `created_at`, `height`, `birth_date`, `athlete_state_id`) VALUES
+(1, 'admin@test.com', 'admin', 'test', '3000000000', NULL, 4, 1, '2025-11-18 12:31:18', NULL, NULL, NULL),
+(2, 'manager@test.com', 'manager', 'test', '3000000001', '123', 3, 1, '2025-11-18 12:32:50', NULL, NULL, NULL),
 (10, 'Farid@example.com', 'Farid', 'Mondragon', '3146547262', '$2y$10$Y5FRpX1gG9e75NNq9c967OHBSlliWRUBaPov6WU2T.qrxetYFFv.O', 1, 1, '2025-11-12 15:32:14', 1.85, '1980-07-12', NULL),
 (12, 'Juan@example.com', 'Juan Diego', 'Bello', '3146547261', '$2y$10$FdZv.SXbfWJ2JyOzHicthuJiBENKClKtXKT5cOhAuTDRw9PoQttPq', 2, 1, '2025-11-12 15:33:49', 1.85, '2002-07-12', NULL),
 (13, 'Jose@example.com', 'Jose', 'Villa', '3027654528', '$2y$10$oMO2fwIueffYz/zcLY42je2BYwjaiCYCYxHIOGRNJ6n1wcSL3sD76', 2, 1, '2025-11-12 17:42:31', 1.85, '1980-07-12', NULL),
 (14, 'Perkeman@example.com', 'Jose', 'Pekerman', '3146547261', '$2y$10$yR6HiJN42pRvg5C5/CgSGOqxotT917Z7UIaAXxl6P.J3ywU8UuUwS', 2, 1, '2025-11-12 18:00:44', 1.75, '1980-07-12', NULL),
 (15, 'Luis@example.com', 'Luis', 'Perez', '3146547362', '$2y$10$BslPXkflLsbIW7PqJooNtO960EiSFgU2tZNtfdggNgrMNUXJ0IQiW', 1, 1, '2025-11-12 18:16:17', 1.78, '1990-07-12', NULL),
 (16, 'mejora@example.com', 'El mejor', 'Admin', '3146547265', '$2y$10$JvwEVzjNNu9SjiXo/FmJW.X3M9ZlCmEB0Wx05jrnY8ZwAxKYHU.iO', 3, 1, '2025-11-12 22:40:26', NULL, '1999-06-15', NULL),
-(17, 'Boris@example.com', 'Boris', 'Mussolini', '3146547262', '$2y$10$gGoKKVigaR5kv64KNaMRJeVmoUDvFdd98WSgo0SMfR9naWytcQFWy', 4, 1, '2025-11-13 05:24:05', 1.92, '1953-07-12', NULL);
+(17, 'Boris@example.com', 'Boris', 'Mussolini', '3146547262', '$2y$10$gGoKKVigaR5kv64KNaMRJeVmoUDvFdd98WSgo0SMfR9naWytcQFWy', 4, 1, '2025-11-13 05:24:05', 1.92, '1953-07-12', NULL),
+(18, 'carlos.martinez@example.com', 'Carlos', 'Martínez', '3001234567', '$2y$10$PV4Unk7uuHaAEzsCQeWCK.cCQmeN5qf5SWxSWRtwnELdf9epMBVpa', 1, 1, '2025-11-14 07:05:57', 1.75, '2000-05-15', 4),
+(19, 'ana.lopez@example.com', 'Ana', 'López', '3209876543', '$2y$10$WUi2UXSP7nTT2x4H5VHhU.qbyMg03DzieHJbAIOOkbwNabjl8/jCq', 2, 1, '2025-11-14 07:07:03', NULL, '1985-08-20', NULL),
+(20, 'pedro@example.com', 'Pedro', 'Sánchez', '3001111111', '$2y$10$vfT7O3EcmhOHaMSn0q32jOur9kkcamHlult53jz8Nno84vo1j2N5y', 1, 1, '2025-11-14 07:08:17', NULL, '1998-03-10', 4),
+(21, 'nuevo@example.com', 'Otro', 'Usuario', '3003333333', '$2y$10$pflnxa50AOFjszVDuTTpMODXxHYwGgYQwbbi1Q4Ocs6yB9l8ACCaa', 1, 1, '2025-11-14 07:14:28', 1.7, '2001-01-01', 4),
+(22, 'trainer@example.com', 'Juan', 'Trainer', '3005555555', '$2y$10$zcACU9kyqv.GmnUWsBqod.1kH9nos85oGAB8l8eau.iQkjQf6lbq6', 2, 1, '2025-11-14 07:39:00', NULL, '1980-01-01', NULL),
+(764536, 'stringoso@example.com', 'stringoso', 'stringuito', '9861103789', '$2y$10$cYDVAR4qmrS1/V4rhoD/p.kO56A3Yx6605YjtB/Dq4E9Sc8aeHB8u', 1, 1, '2025-11-20 19:57:15', 1.7, '2015-10-20', NULL),
+(24342754, 'potasio@example.com', 'Potasio', 'Manager', '3005555555', '$2y$10$RWS.NuZIomVQtvrErDOKzOqFPOEmRBTQp7KVUA7K4H.B098hXdXGW', 2, 1, '2025-11-14 09:21:47', NULL, '1999-01-07', NULL),
+(32876609, 'Poloto@example.com', 'Polo', 'Polito', '3146547262', '$2y$10$UIMw0qwpeys/mDE4UMGXUOtTaLDBPxD6WMo1VFM4MA7WNvD/mOF06', 3, 1, '2025-11-14 09:14:00', 1.85, '1980-07-12', NULL),
+(98764567, 'Contrera@test.com', 'Carlos', 'Contrera', '8276543263', '$2y$10$iIdyAaOw7oloZLlT45a2UOeQm4YVOETcuqCeJpduJ0zrFxRB5Uonu', 1, 1, '2025-11-20 20:38:42', 1.82, '2010-05-09', NULL),
+(98765212, 'juan@test.com', 'Juan', 'Bello', '3215768938', '$2y$10$C4fBwGFbByaykonc5GnnKOXTSLcEUdnbutas46f2BTpSOZv8RmQeC', 1, 1, '2025-11-20 20:10:55', 1.64, '2002-06-01', NULL),
+(765402192, 'rulfo@example.com', 'Juan', 'Rulfo', '3215768938', '$2y$10$JUO76cjzo6j7gfCOXkVe0ePguPKmgHKOqxg6kJBGkoBlYDQOePdLO', 2, 1, '2025-11-22 02:44:22', NULL, '2001-02-12', NULL),
+(1008888888, 'sanchez@example.com', 'Pedro', 'Sánchez', '3001111111', '$2y$10$wT9V8WpY/4L5WOkdYkA1veG8CZXgtiuh0zCWdBKDCllsIGypbmTPK', 1, 1, '2025-11-14 09:26:37', 1.78, '1998-03-10', NULL),
+(1037987564, 'Wilo@example.com', 'Papi', 'Wilou', '3146547262', '$2y$10$BqE8YqcR8/K9nfcmV8cUeuQ5sqj4pjWlIHsb/5v4HM4hDVR45Nk/.', 1, 1, '2025-11-20 07:06:23', 1.85, '1980-07-12', NULL),
+(2147483647, 'pepita@example.com', 'Pepita', 'Jimenez', '3204342688', '$2y$10$RkAPgOwF43VIIig/ySOUZeZoZEy8KP.OipCEceamS08rPaAhJk7dS', 1, 1, '2025-11-22 02:38:00', 1.75, '1999-07-01', NULL);
 
 -- --------------------------------------------------------
 
@@ -544,6 +637,12 @@ ALTER TABLE `matches`
   ADD KEY `idx_match_teams` (`team1_id`,`team2_id`);
 
 --
+-- Indices de la tabla `phinxlog`
+--
+ALTER TABLE `phinxlog`
+  ADD PRIMARY KEY (`version`);
+
+--
 -- Indices de la tabla `reservations`
 --
 ALTER TABLE `reservations`
@@ -553,7 +652,9 @@ ALTER TABLE `reservations`
   ADD KEY `idx_reservation_field` (`field_id`),
   ADD KEY `idx_reservation_applicant` (`applicant_id`),
   ADD KEY `idx_reservation_status` (`status`),
-  ADD KEY `idx_reservations_activity` (`activity_type`);
+  ADD KEY `idx_reservations_activity` (`activity_type`),
+  ADD KEY `idx_approved_at` (`approved_at`),
+  ADD KEY `idx_status_approved_at` (`status`,`approved_at`);
 
 --
 -- Indices de la tabla `reservation_participants`
@@ -664,7 +765,7 @@ ALTER TABLE `reservations`
 -- AUTO_INCREMENT de la tabla `reservation_participants`
 --
 ALTER TABLE `reservation_participants`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `roles`
@@ -676,19 +777,13 @@ ALTER TABLE `roles`
 -- AUTO_INCREMENT de la tabla `teams`
 --
 ALTER TABLE `teams`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT de la tabla `team_memberships`
 --
 ALTER TABLE `team_memberships`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
-
---
--- AUTO_INCREMENT de la tabla `users`
---
-ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT de la tabla `user_states`

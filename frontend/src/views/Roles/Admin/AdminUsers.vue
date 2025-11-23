@@ -1,5 +1,9 @@
 <template>
   <div class="container-fluid py-4">
+    <AppBreadcrumb :crumbs="[
+      { label: 'Dashboard', to: '/admin', icon: 'bi bi-house' },
+      { label: 'Usuarios', to: '/admin/users', icon: 'bi bi-people', active: true }
+    ]" />
     <div class="row">
       <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -199,8 +203,11 @@
 </template>
 
 <script setup>
+
 import { ref, computed } from 'vue';
 import { getUsers, getUserById, register, updateUser, deleteUser as deleteUserApi } from '@/services/api';
+import AppBreadcrumb from '@/components/AppBreadcrumb.vue';
+
 
 const users = ref([]);
 const loading = ref(false);
@@ -331,6 +338,9 @@ const roleBadge = (roleId) => {
 };
 
 loadUsers();
+
+// Registrar el componente breadcrumb
+defineExpose({ AppBreadcrumb });
 </script>
 
 <style scoped>

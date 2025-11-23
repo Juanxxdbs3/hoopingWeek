@@ -19,6 +19,12 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: [4] }
     },
     {
+      path: '/admin/dashboard',
+      name: 'admin.dashboard',
+      component: AdminDashboard,
+      meta: { requiresAuth: true, roles: [4] }
+    },
+    {
       path: '/athlete',
       name: 'athlete',
       component: () => import('../views/Roles/Athlete/AthleteDashboard.vue'),
@@ -46,19 +52,19 @@ const router = createRouter({
       path: '/admin/reservations',
       name: 'admin.reservations',
       component: () => import('../views/Roles/Admin/AdminReservations.vue'),
-      meta: { requiresAuth:true, roles: [4] }
+      meta: { requiresAuth: true, roles: [4] }
     },
     {
-      path: '/admin/shifts',
-      name: 'admin.shifts',
+      path: '/admin/manager-shifts',
+      name: 'admin.manager-shifts',
       component: () => import('../views/Roles/Admin/AdminManagerShifts.vue'),
-      meta: { requiresAuth:true, roles: [4] }
+      meta: { requiresAuth: true, roles: [4] }
     },
     {
       path: '/admin/users',
       name: 'admin.users',
       component: () => import('../views/Roles/Admin/AdminUsers.vue'),
-      meta: { requiresAuth:true, roles: [4] }
+      meta: { requiresAuth: true, roles: [4] }
     }
   ]
 })
