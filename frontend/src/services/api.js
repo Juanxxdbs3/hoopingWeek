@@ -1,14 +1,14 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_BROKER_URL || 'http://localhost:5000', // ✅ Puerto 5000 (Broker)
+  baseURL: import.meta.env.VITE_BROKER_URL || 'http://localhost:5000',
   timeout: 20000,
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
-// Interceptor de REQUEST: añadir token automáticamente
+// Interceptor REQUEST: token automático
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
@@ -17,19 +17,16 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Interceptor de RESPONSE: manejar errores 401 (token expirado)
+// Interceptor RESPONSE: 401 -> logout
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('access_token');
       localStorage.removeItem('user');
-      
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
@@ -61,7 +58,10 @@ export const rejectReservation = (id, reason) => api.patch(`/api/reservations/${
 export const cancelReservation = (id, reason) => api.patch(`/api/reservations/${id}/cancel`, { reason });
 
 // FIELDS
-export const getFields = () => api.get('/api/fields');
+export const getFields = (opts = {}) => {
+  // Timeout extendido por si el data-layer responde lento
+  return api.get('/api/fields', { timeout: opts.timeout ?? 60000 });
+};
 export const getFieldById = (id) => api.get(`/api/fields/${id}`);
 export const getFieldAvailability = (id, date) => api.get(`/api/fields/${id}/availability`, { params: { date } });
 
@@ -75,8 +75,8 @@ export const getTeamMembers = (teamId) => api.get(`/api/teams/${teamId}/members`
 export const addTeamMember = (teamId, athleteId) => api.post(`/api/teams/${teamId}/members`, { athlete_id: athleteId });
 export const removeTeamMember = (teamId, athleteId) => api.delete(`/api/teams/${teamId}/members/${athleteId}`);
 
-// CHAMPIONSHIPS (General)
-export const getChampionships = () => api.get('/api/championships');
+// CHAMPIONSHIPS
+export const getChampionships = (params = {}) => api.get('/api/championships', { params });
 export const getChampionshipById = (id) => api.get(`/api/championships/${id}`);
 export const createChampionship = (data) => api.post('/api/championships', data);
 export const updateChampionship = (id, data) => api.put(`/api/championships/${id}`, data);
@@ -89,25 +89,19 @@ export const createManagerShift = (data) => api.post('/api/manager-shifts', data
 export const updateManagerShift = (id, data) => api.put(`/api/manager-shifts/${id}`, data);
 export const deleteManagerShift = (id) => api.delete(`/api/manager-shifts/${id}`);
 
-// ============================================================
-// ✅ NUEVAS FUNCIONES AGREGADAS (CORRECCIÓN DEL ERROR)
-// ============================================================
-
 // CHAMPIONSHIP TEAMS & MATCHES
-// Obtener equipos inscritos en un campeonato
 export const getChampionshipTeams = (id) => api.get(`/api/championships/${id}/teams`);
-
-// Agregar un equipo a un campeonato
 export const addTeamToChampionship = (id, teamId) => api.post(`/api/championships/${id}/teams`, { team_id: teamId });
-
-// Eliminar un equipo de un campeonato
 export const removeTeamFromChampionship = (id, teamId) => api.delete(`/api/championships/${id}/teams/${teamId}`);
 
-// Obtener partidos de un campeonato (Asume filtro por backend o endpoint específico)
-// NOTA: Si el endpoint '/api/matches' no filtra por championship_id aún, traerá todos.
+// Obtener partidos de un campeonato (enriquecidos) - nuevo endpoint del broker
+export const getChampionshipMatchesEnriched = (championship_id) =>
+  api.get(`/api/championships/${championship_id}/matches_enriched`);
+
+// Obtener partidos de un campeonato (sin enriquecer, legacy)
 export const getChampionshipMatches = (championship_id) => api.get('/api/matches', { params: { championship_id } });
 
-// Crear un partido de campeonato
+// Crear un partido de campeonato (orquestado por broker: crea reserva + match)
 export const createChampionshipMatch = (championshipId, data) => api.post(`/api/championships/${championshipId}/matches`, data);
 
 export default api;

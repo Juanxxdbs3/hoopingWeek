@@ -38,6 +38,7 @@
           @edit="selectChampionship"
           @approve="approveChampionship"
           @reject="rejectChampionship"
+          @delete="deleteChampionship"
         />
       </div>
     </div>
@@ -70,7 +71,7 @@
     <!-- Modal de reserva (componente externo debe contener element id=reservationModal) -->
     <ReservationModal ref="reservationModal" @reservation-saved="refreshAll" />
 
-    <!-- Modal para crear campeonato (version anterior: v-if + display:block) -->
+    <!-- Modal para crear campeonato (v-if) -->
     <div class="modal fade" tabindex="-1" :class="{ show: showChampModal }" style="display: block;" v-if="showChampModal">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -110,7 +111,7 @@
       </div>
     </div>
 
-    <!-- Modal para matches del campeonato seleccionado (v-if/display:block) -->
+    <!-- Modal para matches del campeonato seleccionado -->
     <div class="modal fade" tabindex="-1" :class="{ show: showMatchesModal }" style="display: block;" v-if="showMatchesModal">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -125,12 +126,60 @@
                 <i class="bi bi-plus-circle"></i> Agregar Match
               </button>
             </div>
-            <ul v-if="matches.length" class="list-group">
-              <li v-for="match in matches" :key="match.id" class="list-group-item">
-                {{ match.team1_name }} vs {{ match.team2_name }} - {{ match.start_datetime }}
-              </li>
-            </ul>
-            <div v-else class="text-muted">No hay partidos programados.</div>
+
+            <div v-if="matches.length === 0" class="text-center text-muted py-3">
+              <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+              No hay partidos registrados para este campeonato.
+            </div>
+
+            <div v-else>
+              <table class="table table-sm align-middle">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Fecha</th>
+                    <th>Campo</th>
+                    <th>Equipo 1</th>
+                    <th>Equipo 2</th>
+                    <th>Estado Reserva</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(item, idx) in matches" :key="item.match.id">
+                    <td>{{ idx + 1 }}</td>
+                    <td>
+                      <span v-if="item.reservation && item.reservation.start_datetime">
+                        {{ formatDate(item.reservation.start_datetime) }}
+                      </span>
+                      <span v-else class="text-muted">-</span>
+                    </td>
+                    <td>
+                      <span v-if="item.reservation && item.reservation.field_id">
+                        {{ getFieldName(item.reservation.field_id) }}
+                      </span>
+                      <span v-else class="text-muted">-</span>
+                    </td>
+                    <td>
+                      <span v-if="item.team1 && item.team1.name">{{ item.team1.name }}</span>
+                      <span v-else class="text-muted">Equipo #{{ item.match.team1_id }}</span>
+                    </td>
+                    <td>
+                      <span v-if="item.team2 && item.team2.name">{{ item.team2.name }}</span>
+                      <span v-else class="text-muted">Equipo #{{ item.match.team2_id }}</span>
+                    </td>
+                    <td>
+                      <span v-if="item.reservation && item.reservation.status">
+                        <span :class="statusBadge(item.reservation.status)">
+                          {{ item.reservation.status }}
+                        </span>
+                      </span>
+                      <span v-else class="text-muted">-</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" @click="showMatchesModal = false">Cerrar</button>
@@ -139,7 +188,7 @@
       </div>
     </div>
 
-    <!-- Modal para agregar match (v-if/display:block) -->
+    <!-- Modal para agregar match -->
     <div class="modal fade" tabindex="-1" :class="{ show: showAddMatchModal }" style="display: block;" v-if="showAddMatchModal">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -205,15 +254,15 @@ import {
   getReservations,
   getFields,
   getChampionships,
-  createChampionship,    // ya estaba
-  getChampionshipMatches,
-  createReservation,
+  createChampionship,
+  getChampionshipMatchesEnriched,
   createChampionshipMatch,
   getTeams,
   approveReservation,
-  rejectReservation
+  rejectReservation,
+  deleteChampionship as apiDeleteChampionship,
+  updateChampionship,
 } from '@/services/api';
-import { updateChampionship } from '@/services/api';
 import ReservationModal from '@/components/ReservationModal.vue';
 import ReservationList from '@/components/ReservationList.vue';
 import ChampionshipPanel from '@/components/ChampionshipPanel.vue';
@@ -353,9 +402,8 @@ export default {
       });
     };
 
-    // Abrir modal de campeonato (v-if approach): ocultar reserva si está abierta y mostrar showChampModal
+    // Abrir modal de campeonato (v-if approach)
     const openChampionshipModal = async () => {
-      // ocultar modal de reserva si está abierto (evitar conflicto de foco)
       try {
         const bootstrap = await import('bootstrap');
         const { Modal } = bootstrap;
@@ -367,7 +415,6 @@ export default {
       } catch (e) {
         // ignore
       }
-      // reset form y mostrar v-if modal
       champForm.name = '';
       champForm.sport = '';
       champForm.start_date = '';
@@ -376,14 +423,9 @@ export default {
       showChampModal.value = true;
     };
 
-    const editChampionship = (champ) => {
-      // abrir modal de matches para ese campeonato
-      selectChampionship(champ);
-    };
     const approveChampionship = async (champ) => {
       if (!confirm('¿Confirmar aprobación del campeonato "' + champ.name + '"?')) return;
       try {
-        // cambiar estado a planning
         await updateChampionship(champ.id, { status: 'planning' });
         await loadChampionships();
         alert('✓ Campeonato aprobado (planning)');
@@ -405,8 +447,7 @@ export default {
       }
     };
 
-    // Crear campeonato (cierra modal v-if cuando termina)
-    // handleCreateChampionship: usar status "planning"
+    // Crear campeonato
     const handleCreateChampionship = async () => {
       champError.value = '';
       champSubmitting.value = true;
@@ -418,7 +459,7 @@ export default {
           sport: champForm.sport,
           start_date: champForm.start_date,
           end_date: champForm.end_date,
-          status: 'planning'   // <-- cambiado a planning
+          status: 'planning'
         };
         const res = await createChampionship(payload);
         if (res.data && res.data.ok) {
@@ -442,10 +483,8 @@ export default {
       await loadChampionshipTeams(champ.id);
     };
 
-    // Reemplazar loadChampionshipTeams para usar getTeams (tabla global de equipos)
     const loadChampionshipTeams = async (champId) => {
       try {
-        // cargamos TODOS los equipos para poder seleccionar team1/team2 al crear un match dentro del campeonato
         const res = await getTeams({ limit: 200 });
         champTeams.value = res.data.teams?.data || res.data.data || [];
       } catch (e) {
@@ -453,35 +492,33 @@ export default {
       }
     };
 
+    // --- USAR endpoint enriquecido que implementaste en el broker ---
     const loadChampionshipMatches = async (champId) => {
       try {
-        const res = await getChampionshipMatches(champId);
-        matches.value = res.data.matches?.data || res.data.data || [];
+        const res = await getChampionshipMatchesEnriched(champId);
+        // Aceptar varias formas de respuesta:
+        const raw = res.data?.matches?.data || res.data?.matches || res.data?.data || [];
+        // raw expected: [{ match: {...}, reservation: {...}?, team1: {...}?, team2: {...}? }, ...]
+        matches.value = Array.isArray(raw) ? raw : [];
       } catch (e) {
+        console.error('Error cargando matches del championship:', e);
         matches.value = [];
       }
     };
 
-    // Reemplaza handleAddMatch por esta versión que crea una reserva y usa su id al crear el match
+    // Crear match: orquestado en el broker (crea reserva + match atómicamente)
     const handleAddMatch = async () => {
       matchError.value = '';
       matchSubmitting.value = true;
       try {
-        if (!matchForm.field_id) {
-          throw new Error('Selecciona un campo para el match');
-        }
-        if (!matchForm.team1_id || !matchForm.team2_id) {
-          throw new Error('Selecciona ambos equipos');
-        }
+        if (!matchForm.field_id) throw new Error('Selecciona un campo para el match');
+        if (!matchForm.team1_id || !matchForm.team2_id) throw new Error('Selecciona ambos equipos');
 
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        const startDt = matchForm.start_datetime; // "YYYY-MM-DDTHH:MM"
+        const startDt = matchForm.start_datetime;
         const start = new Date(startDt);
-        const end = new Date(start.getTime() + (matchForm.duration || 1) * 3600 * 1000);
         const pad = n => String(n).padStart(2, '0');
         const formatDateTime = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
 
-        // Armamos payload simple para el broker (el broker crea la reserva + match)
         const payload = {
           field_id: Number(matchForm.field_id),
           team1_id: Number(matchForm.team1_id),
@@ -491,10 +528,7 @@ export default {
           notes: `Match for championship ${selectedChamp.value?.id || ''}`
         };
 
-        // Llamada única: orquestada por broker
         const res = await createChampionshipMatch(selectedChamp.value.id, payload);
-
-        // res.data: { ok: true, reservation: {...}, match: {...} }
         if (res.data && res.data.ok) {
           showAddMatchModal.value = false;
           matchForm.team1_id = matchForm.team2_id = matchForm.start_datetime = '';
@@ -511,8 +545,23 @@ export default {
       }
     };
 
+    const deleteChampionship = async (champ) => {
+      if (!confirm(`Eliminar el campeonato "${champ.name}" y todos sus partidos/reservas asociados? Esta acción NO se puede deshacer.`)) return;
+      try {
+        await apiDeleteChampionship(champ.id);
+        if (selectedChamp.value && selectedChamp.value.id === champ.id) {
+          selectedChamp.value = null;
+          showMatchesModal.value = false;
+        }
+        await loadChampionships();
+        alert('✓ Campeonato eliminado correctamente');
+      } catch (e) {
+        console.error('Error eliminando championship:', e);
+        alert('Error eliminando campeonato: ' + (e.response?.data?.detail || e.message || e));
+      }
+    };
 
-    // Approve / Reject reservations
+    // Approve / Reject reservations (list)
     const approve = async (id) => {
       if (!confirm('¿Confirmar aprobación de esta reserva?')) return;
       try {
@@ -532,7 +581,11 @@ export default {
         alert('✓ Reserva rechazada');
         loadReservations();
       } catch (error) {
-        alert('Error: ' + (error.response?.data?.detail || error.message || 'No se pudo rechazar'));
+        if (error.response?.status === 422) {
+          alert('El motivo de rechazo debe tener al menos 10 caracteres.');
+        } else {
+          alert('Error: ' + (error.response?.data?.detail || error.message || 'No se pudo rechazar'));
+        }
       }
     };
 
@@ -568,7 +621,6 @@ export default {
       openReservationModal,
       refreshAll,
       openChampionshipModal,
-      editChampionship,
       approveChampionship,
       rejectChampionship,
       // create championship
@@ -588,7 +640,8 @@ export default {
       matchSubmitting,
       selectChampionship,
       handleAddMatch,
-      // approve/reject
+      deleteChampionship,
+      // approve/reject (list)
       approve,
       reject
     };

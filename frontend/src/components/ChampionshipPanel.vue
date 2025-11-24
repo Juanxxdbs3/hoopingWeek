@@ -24,12 +24,23 @@
             <button class="btn btn-sm btn-outline-secondary" @click="$emit('edit', champ)">
               <i class="bi bi-list-task"></i> Matches
             </button>
-            <button v-if="champ.status === 'pending' || champ.status === 'planning'" class="btn btn-sm btn-success" @click="$emit('approve', champ)">
-              <i class="bi bi-check-circle"></i>
-            </button>
-            <button v-if="champ.status === 'pending' || champ.status === 'planning'" class="btn btn-sm btn-danger" @click="$emit('reject', champ)">
-              <i class="bi bi-x-circle"></i>
-            </button>
+
+            <!-- Solo PENDING muestra approve + reject -->
+            <template v-if="champ.status === 'pending'">
+              <button class="btn btn-sm btn-success" @click="$emit('approve', champ)">
+                <i class="bi bi-check-circle"></i>
+              </button>
+              <button class="btn btn-sm btn-danger" @click="$emit('reject', champ)">
+                <i class="bi bi-x-circle"></i>
+              </button>
+            </template>
+
+            <!-- Si NO está pending: mostrar eliminar -->
+            <template v-else>
+              <button class="btn btn-sm btn-outline-danger" @click="$emit('delete', champ)">
+                <i class="bi bi-trash"></i>
+              </button>
+            </template>
           </div>
         </li>
       </ul>
@@ -44,7 +55,7 @@ export default {
     championships: { type: Array, required: true },
     loading: { type: Boolean, default: false }
   },
-  emits: ['create', 'edit', 'approve', 'reject']
+  emits: ['create', 'edit', 'approve', 'reject', 'delete']
 };
 </script>
 

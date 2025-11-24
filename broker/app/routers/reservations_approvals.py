@@ -1,5 +1,6 @@
 # broker/app/routers/reservation_approvals.py
 from fastapi import APIRouter, HTTPException, status, Body, BackgroundTasks, Depends
+import httpx
 from typing import Dict, Any
 from app.services.approval_orchestrator import ApprovalOrchestrator
 from app.models.schemas import ApproveRequest, RejectRequest, ReservationCancelRequest
@@ -29,18 +30,23 @@ async def approve_reservation(
     - Si es Manager, valida turno.
     - Si es Campeonato, desplaza reservas conflictivas.
     """
-    # Validar identidad (opcional, ya que el token asegura quién es)
-    if body.approver_id and body.approver_id != current_user["id"]:
-         # Si envían un ID distinto al del token, forzamos el del token o lanzamos error.
-         # Por seguridad, usaremos el del token.
-         pass
-
-    orchestrator = ApprovalOrchestrator()
-    result = await orchestrator.approve_reservation(
-        reservation_id=reservation_id, 
-        approver_id=current_user["id"], 
-        note=body.note
-    )
+    try:
+        orchestrator = ApprovalOrchestrator()
+        result = await orchestrator.approve_reservation(
+            reservation_id=reservation_id, 
+            approver_id=current_user["id"], 
+            note=body.note
+        )
+    except httpx.HTTPStatusError as e:
+        status_code = e.response.status_code
+        try:
+            detail = e.response.json()
+        except Exception:
+            detail = str(e)
+        raise HTTPException(status_code=status_code, detail=detail)
+    except Exception as e:
+        print("❌ Error approving reservation:", e)
+        raise HTTPException(status_code=500, detail="Error al aprobar reserva")
 
     if not result.get("ok"):
         code = result.get("code", 400)
@@ -73,12 +79,24 @@ async def reject_reservation(
         )
     )
 ):
-    orchestrator = ApprovalOrchestrator()
-    result = await orchestrator.reject_reservation(
-        reservation_id=reservation_id,
-        approver_id=current_user["id"],
-        reason=body.rejection_reason
-    )
+    try:
+        orchestrator = ApprovalOrchestrator()
+        result = await orchestrator.reject_reservation(
+            reservation_id=reservation_id,
+            approver_id=current_user["id"],
+            reason=body.rejection_reason
+        )
+    except httpx.HTTPStatusError as e:
+        status_code = e.response.status_code
+        try:
+            detail = e.response.json()
+        except Exception:
+            detail = str(e)
+        # Si Data Layer retorna 422 por motivo muy corto, lo propagamos con detalle legible
+        raise HTTPException(status_code=status_code, detail=detail)
+    except Exception as e:
+        print("❌ Error rejecting reservation:", e)
+        raise HTTPException(status_code=500, detail="Error al rechazar reserva")
 
     if not result.get("ok"):
         raise HTTPException(status_code=500, detail=result.get("message"))
