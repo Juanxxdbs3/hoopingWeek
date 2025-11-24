@@ -21,6 +21,10 @@
           <i class="bi bi-calendar-check"></i>
           Reservas
         </router-link>
+        <router-link to="/admin/teams" class="nav-item" active-class="active">
+          <i class="bi bi-people-fill"></i>
+          Equipos
+        </router-link>
         <router-link to="/admin/users" class="nav-item" active-class="active">
           <i class="bi bi-people"></i>
           Usuarios
