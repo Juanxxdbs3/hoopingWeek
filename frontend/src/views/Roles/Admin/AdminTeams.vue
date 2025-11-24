@@ -68,6 +68,13 @@
                   <input v-model="teamForm.name" class="form-control" required placeholder="Ej: Los Tigres" />
                 </div>
                 <div class="col-md-3">
+                  <!--
+                   //*TODO
+                  /*
+                  Actualmente solo está mostrando los 3 deportes disponibles en la bd, podríamos hacer un endpoint que haga fetch de los deportes disponibes en data-layer y hacer que esta lista se actualice dinámicamente.
+                  */
+                  -->
+                 
                   <label class="form-label small fw-bold">Deporte *</label>
                   <select v-model="teamForm.sport" class="form-select" required>
                     <option value="">Selecciona</option>
@@ -324,13 +331,19 @@ export default {
       members.value = [];
       try {
         const res = await getTeamMembers(teamId);
-        // Normalización robusta de datos
-        const rawMembers = res.data?.members?.data || res.data?.data || [];
-        
+        // Normalización robusta de datos: soportar varias formas que devuelve el broker
+        // Ejemplos aceptados:
+        // 1) { ok: true, members: { data: [...] } }
+        // 2) { ok: true, members: [...] }
+        // 3) { ok: true, data: [...] }
+        const rawMembers = res.data?.members?.data || res.data?.members || res.data?.data || [];
+        // DEBUG: mostrar en consola la forma real recibida (se puede quitar luego)
+        console.debug('loadTeamMembers -> rawMembers:', rawMembers);
+
         members.value = rawMembers.map(m => ({
           id: m.id, // ID de la membresía
           athlete_id: m.athlete_id || m.user_id, // ID del usuario
-          user_name: m.user_name || m.first_name + ' ' + m.last_name, // Nombre si viene del backend
+          user_name: m.user_name || (m.first_name ? (m.first_name + ' ' + (m.last_name || '')) : ('Atleta #' + (m.athlete_id || m.user_id))),
           join_date: m.join_date
         }));
       } catch (e) {
