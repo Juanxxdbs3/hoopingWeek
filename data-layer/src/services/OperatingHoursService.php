@@ -134,4 +134,24 @@ class OperatingHoursService {
         
         return $this->repo->getExceptionsByRange($fieldId, $startDate, $endDate);
     }
+
+    // Eliminar horario regular de un día
+    public function deleteOperatingHour(int $fieldId, int $dayOfWeek): bool {
+        // Validaciones básicas
+        if ($dayOfWeek < 0 || $dayOfWeek > 6) return false;
+
+        // Validar que el campo existe
+        $field = $this->fieldRepo->findById($fieldId);
+        if (!$field) {
+            return false;
+        }
+
+        return $this->repo->deleteByFieldAndDay($fieldId, $dayOfWeek);
+    }
+
+    // Eliminar excepción por ID
+    public function deleteException(int $id): bool {
+        if (!is_int($id) || $id <= 0) return false;
+        return $this->repo->deleteException($id);
+    }
 }

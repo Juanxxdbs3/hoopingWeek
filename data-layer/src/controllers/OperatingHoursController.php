@@ -194,4 +194,43 @@ class OperatingHoursController {
         }
     }
 
+    // Eliminar horario regular de un día
+    public function deleteOperatingHour(Request $request, Response $response, array $args): Response {
+        $fieldId = (int)$args['field_id'];
+        $dayOfWeek = (int)$args['day_of_week'];
+
+        try {
+            $success = $this->service->deleteOperatingHour($fieldId, $dayOfWeek);
+            if (!$success) {
+                $response->getBody()->write(json_encode(['ok' => false, 'error' => 'No se encontró horario para eliminar']));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
+            }
+            $response->getBody()->write(json_encode(['ok' => true, 'message' => 'Horario eliminado']));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\Throwable $e) {
+            error_log($e->getMessage());
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Error interno']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
+    }
+
+    // Eliminar excepción por ID
+    public function deleteException(Request $request, Response $response, array $args): Response {
+        $id = (int)$args['id'];
+
+        try {
+            $success = $this->service->deleteException($id);
+            if (!$success) {
+                $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Excepción no encontrada']));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
+            }
+            $response->getBody()->write(json_encode(['ok' => true, 'message' => 'Excepción eliminada']));
+            return $response->withHeader('Content-Type', 'application/json');
+        } catch (\Throwable $e) {
+            error_log($e->getMessage());
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Error interno']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
+    }
+
 }

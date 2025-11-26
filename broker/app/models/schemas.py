@@ -236,3 +236,80 @@ class ChampionshipResponse(BaseModel):
 
 class ChampionshipTeamAdd(BaseModel):
     team_id: int = Field(..., gt=0)
+
+# ========== FIELDS SCHEMAS ==========
+
+class FieldCreate(BaseModel):
+    name: str = Field(..., min_length=3)
+    location: str = Field(..., min_length=3)
+    width_meters: Optional[int] = Field(None, ge=1)
+    length_meters: Optional[int] = Field(None, ge=1)
+    surface_type: Optional[str] = Field(None, max_length=100)
+    allowed_sports: List[str] = Field(default_factory=list)
+    people_capacity: Optional[int] = Field(None, ge=1)
+    state: str = Field("active", pattern="^(active|inactive|maintenance|closed)$")
+    is_open_to_public: bool = Field(True)
+    owner_entity: Optional[str] = Field(None, max_length=255)
+    notes: Optional[str] = Field(None, max_length=1000)
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "name": "Cancha Principal",
+                "location": "Calle 123, Sector Centro",
+                "width_meters": 60,
+                "length_meters": 100,
+                "surface_type": "grass",
+                "allowed_sports": ["soccer", "futsal"],
+                "people_capacity": 500,
+                "state": "active",
+                "is_open_to_public": True,
+                "owner_entity": "Alcaldía Local",
+                "notes": "Iluminada por la noche"
+            }
+        }
+    }
+
+
+class FieldUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=3)
+    location: Optional[str] = Field(None, min_length=3)
+    width_meters: Optional[int] = Field(None, ge=1)
+    length_meters: Optional[int] = Field(None, ge=1)
+    surface_type: Optional[str] = Field(None, max_length=100)
+    allowed_sports: Optional[List[str]] = None
+    people_capacity: Optional[int] = Field(None, ge=1)
+    state: Optional[str] = Field(None, pattern="^(active|inactive|maintenance|closed)$")
+    is_open_to_public: Optional[bool] = None
+    owner_entity: Optional[str] = Field(None, max_length=255)
+    notes: Optional[str] = Field(None, max_length=1000)
+
+
+class FieldStateUpdate(BaseModel):
+    state: str = Field(..., pattern="^(active|maintenance|inactive|closed)$")
+
+class OperatingHourCreate(BaseModel):
+    day_of_week: int = Field(..., ge=0, le=6, description="0=Domingo, 6=Sábado")
+    open_time: str = Field(..., pattern=r"^\d{2}:\d{2}(:\d{2})?$", description="HH:MM or HH:MM:SS")
+    close_time: str = Field(..., pattern=r"^\d{2}:\d{2}(:\d{2})?$", description="HH:MM or HH:MM:SS")
+
+    @model_validator(mode='after')
+    def validate_times(self):
+        # Validación simple: comparar como cadenas funciona para formato HH:MM(:SS)
+        if self.open_time >= self.close_time:
+            raise ValueError('close_time debe ser mayor que open_time')
+        return self
+
+class FieldExceptionCreate(BaseModel):
+    date: date
+    reason: str = Field(..., min_length=3)
+    overrides_regular: bool = Field(True, description="Si true, la excepción reemplaza el horario regular")
+    open_time: Optional[str] = Field(None, pattern=r"^\d{2}:\d{2}(:\d{2})?$", description="HH:MM or HH:MM:SS")
+    close_time: Optional[str] = Field(None, pattern=r"^\d{2}:\d{2}(:\d{2})?$", description="HH:MM or HH:MM:SS")
+
+    @model_validator(mode='after')
+    def validate_exception_times(self):
+        # Si se proporcionan ambos horarios, validar orden
+        if self.open_time and self.close_time and self.open_time >= self.close_time:
+            raise ValueError('close_time debe ser mayor que open_time')
+        return self

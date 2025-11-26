@@ -194,4 +194,18 @@ class OperatingHoursRepository {
             BDConnection::releaseConnection($pdo);
         }
     }
+
+    /**
+     * Elimina horario regular de un día
+     */
+    public function deleteByFieldAndDay(int $fieldId, int $dayOfWeek): bool {
+        $pdo = BDConnection::getConnection();
+        try {
+            $stmt = $pdo->prepare("DELETE FROM field_operating_hours WHERE field_id = :fid AND day_of_week = :dow");
+            $stmt->execute([':fid' => $fieldId, ':dow' => $dayOfWeek]);
+            return $stmt->rowCount() > 0;
+        } finally {
+            BDConnection::releaseConnection($pdo);
+        }
+    }
 }

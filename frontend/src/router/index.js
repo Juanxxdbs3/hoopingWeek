@@ -4,6 +4,7 @@ import LoginView from '../views/LoginView.vue'
 import SignupView from '../views/SignUpView.vue'
 import AdminDashboard from '../views/Roles/Admin/AdminDashboard.vue'
 import AthleteDashboard from '../views/Roles/Athlete/AthleteDashboard.vue'
+import AdminFields from '../views/Roles/Admin/AdminFields.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -71,6 +72,12 @@ const router = createRouter({
       name: 'admin.teams',
       component: () => import('../views/Roles/Admin/AdminTeams.vue'),
       meta: { requiresAuth: true, roles: [4] } // 4 = superadmin en tu esquema
+    },
+    {
+      path: '/admin/fields',
+      name: 'admin.fields',
+      component: () => import('../views/Roles/Admin/AdminFields.vue'),
+      meta: { requiresAuth: true, roles: [4, 3] } // SuperAdmin y Manager
     }
   ]
 })

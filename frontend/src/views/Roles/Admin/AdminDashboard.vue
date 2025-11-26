@@ -21,6 +21,13 @@
           <i class="bi bi-calendar-check"></i>
           Reservas
         </router-link>
+
+        <!-- Agregado: Escenarios -->
+        <router-link to="/admin/fields" class="nav-item" active-class="active">
+          <i class="bi bi-geo-alt-fill"></i>
+          Escenarios
+        </router-link>
+
         <router-link to="/admin/teams" class="nav-item" active-class="active">
           <i class="bi bi-people-fill"></i>
           Equipos

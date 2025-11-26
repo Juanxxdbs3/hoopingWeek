@@ -58,12 +58,25 @@ export const rejectReservation = (id, reason) => api.patch(`/api/reservations/${
 export const cancelReservation = (id, reason) => api.patch(`/api/reservations/${id}/cancel`, { reason });
 
 // FIELDS
-export const getFields = (opts = {}) => {
-  // Timeout extendido por si el data-layer responde lento
-  return api.get('/api/fields', { timeout: opts.timeout ?? 60000 });
-};
+export const getFields = (opts = {}) => api.get('/api/fields', { params: opts, timeout: opts.timeout ?? 60000 });
 export const getFieldById = (id) => api.get(`/api/fields/${id}`);
+export const createField = (data) => api.post('/api/fields', data);
+export const updateField = (id, data) => api.put(`/api/fields/${id}`, data);
+export const deleteField = (id, force = false) => api.delete(`/api/fields/${id}${force ? '?force=true' : ''}`);
+export const changeFieldState = (id, state) => api.patch(`/api/fields/${id}/state`, { state }); // state: 'active'|'maintenance'|'inactive'|'closed'
+
+// Field availability & hours
 export const getFieldAvailability = (id, date) => api.get(`/api/fields/${id}/availability`, { params: { date } });
+
+// Operating hours & exceptions
+export const getOperatingHours = (fieldId) => api.get(`/api/fields/${fieldId}/operating-hours`);
+export const createOperatingHour = (fieldId, data) => api.post(`/api/fields/${fieldId}/operating-hours`, data);
+export const deleteOperatingHour = (fieldId, day_of_week) => api.delete(`/api/fields/${fieldId}/operating-hours/${day_of_week}`);
+
+export const getExceptionsRange = (fieldId, start_date, end_date) =>
+  api.get(`/api/fields/${fieldId}/exceptions/range`, { params: { start_date, end_date } });
+export const createFieldException = (fieldId, data) => api.post(`/api/fields/${fieldId}/exceptions`, data);
+export const deleteFieldException = (exceptionId) => api.delete(`/api/exceptions/${exceptionId}`);
 
 // TEAMS
 export const getTeams = (params = {}) => api.get('/api/teams', { params });
@@ -72,10 +85,10 @@ export const createTeam = (data) => api.post('/api/teams', data);
 export const updateTeam = (id, data) => api.put(`/api/teams/${id}`, data);
 export const deleteTeam = (id) => api.delete(`/api/teams/${id}`);
 export const getTeamMembers = (teamId) => api.get(`/api/teams/${teamId}/members`);
-export const addTeamMember = (teamId, athleteId) => api.post(`/api/teams/${teamId}/members`, { athlete_id: athleteId });
+export const addTeamMember = (teamId, athlete) => api.post(`/api/teams/${teamId}/members`, athlete);
 export const removeTeamMember = (teamId, athleteId) => api.delete(`/api/teams/${teamId}/members/${athleteId}`);
 
-// CHAMPIONSHIPS
+// CHAMPIONSHIPS (y otros endpoints existentes)
 export const getChampionships = (params = {}) => api.get('/api/championships', { params });
 export const getChampionshipById = (id) => api.get(`/api/championships/${id}`);
 export const createChampionship = (data) => api.post('/api/championships', data);
@@ -94,14 +107,8 @@ export const getChampionshipTeams = (id) => api.get(`/api/championships/${id}/te
 export const addTeamToChampionship = (id, teamId) => api.post(`/api/championships/${id}/teams`, { team_id: teamId });
 export const removeTeamFromChampionship = (id, teamId) => api.delete(`/api/championships/${id}/teams/${teamId}`);
 
-// Obtener partidos de un campeonato (enriquecidos) - nuevo endpoint del broker
-export const getChampionshipMatchesEnriched = (championship_id) =>
-  api.get(`/api/championships/${championship_id}/matches_enriched`);
-
-// Obtener partidos de un campeonato (sin enriquecer, legacy)
+export const getChampionshipMatchesEnriched = (championship_id) => api.get(`/api/championships/${championship_id}/matches_enriched`);
 export const getChampionshipMatches = (championship_id) => api.get('/api/matches', { params: { championship_id } });
-
-// Crear un partido de campeonato (orquestado por broker: crea reserva + match)
 export const createChampionshipMatch = (championshipId, data) => api.post(`/api/championships/${championshipId}/matches`, data);
 
 export default api;
